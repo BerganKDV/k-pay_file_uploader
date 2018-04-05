@@ -1,12 +1,13 @@
 const express = require('express');
 const multer = require('multer');
 const axios = require('axios');
-const fs = require('fs');
+
 // const upload = multer({
 //   dest: 'uploads/' // this saves your file into a directory called 'uploads'
 // }); 
-const storage = multer.memoryStorage()
-const upload = multer({ storage: storage })
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+const progressStorage = {};
 
 const app = express();
 
@@ -14,7 +15,7 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
-// It's very crucial that the file name matches the name attribute in your html
+// Process form data
 app.post('/', upload.array('files-to-upload', 500), function (req, res) {
     console.log('File', req.files);
     console.log('Text', req.body);
@@ -48,7 +49,7 @@ app.post('/', upload.array('files-to-upload', 500), function (req, res) {
             config.headers['Authentication'] = `Bearer ${tokenObj.token}`;
             // console.log('Header config', config);
             const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
-            console.log('Document Response', docRes.headers);
+            console.log('Document Response', docRes.headers.location);
             if (docRes.status !== 201)
                 throw docRes.body;
 
@@ -62,6 +63,16 @@ app.post('/', upload.array('files-to-upload', 500), function (req, res) {
             const uploadRes = await axios.post(ticketUrl, file.buffer, { headers: { 'Content-Type': file.mimetype } });
             console.log('Upload Response', uploadRes.status);
 
+            // Increase the progress
+            progressStorage[hash].filesProcessed += 1;
+            progressStorage[hash].percentComplete = (progressStorage[hash].filesProcessed  / progressStorage[hash].totalFiles) * 100;
+            console.log('Progress', progressStorage[hash]);
+
+            function wait(x) {
+                return new Promise(resolve => setTimeout(resolve, x));
+            }
+            await wait(3800);
+
         } catch (err) {
             console.error('Error', err);
         }
@@ -74,27 +85,44 @@ app.post('/', upload.array('files-to-upload', 500), function (req, res) {
 
     let files = req.files;
     if (!files) files = [req.file];
-    
+
+    // Create the array of configs
+    const configs = [];
     files.forEach((fileObj) => {
-        const config = {
+        configs.push({
             company: req.body.company,
             api_key: req.body.api_key,
             username: req.body.username,
             password: req.body.password,
             document_type: req.body.document_type,
             file: fileObj
-        }
-        uploadToKpay(config);
+        });
     });
-    // const config = {
-    //     company: req.body.company,
-    //     api_key: req.body.api_key,
-    //     username: req.body.username,
-    //     password: req.body.password,
-    //     document_type: req.body.document_type,
-    //     file: req.files[0]
-    // }
-    // uploadToKpay(config);
+
+    // Create a unique hash for the job
+    function generateHash() {
+        function s4() {
+            return Math.floor((1 + Math.random()) * 0x10000)
+                .toString(16)
+                .substring(1);
+        }
+        return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    }
+    const hash = generateHash();
+    console.log('Hash', hash);
+    progressStorage[hash] = {
+        totalFiles: files.length,
+        filesProcessed: 0,
+        percentComplete: 0
+    }
+    console.log('Progress', progressStorage[hash]);
+
+    async function processArray(configs) {
+        for (const config of configs) {
+            await uploadToKpay(config);
+        }
+    }
+    processArray(configs);
 
     res.redirect('/');
 });
