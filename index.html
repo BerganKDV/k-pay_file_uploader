@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>K-Pay File Uploader</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+        crossorigin="anonymous">
+    <style>
+        @media (min-width: 1200px) {
+            .container {
+                max-width: 900px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header clearfix">
+            <nav>
+                <div class="container-fluid">
+                    <div class="navbar-header">
+                        <h3 class="text-muted">K-Pay File Uploader</h3>
+                    </div>
+                </div>
+            </nav>
+        </div>
+        <div class="jumbotron">
+            <h1 style="font-size:50px">Upload Files To K-Pay Easily!</h1>
+            <p class="lead">Simply fill out your company shortname, api key, username and password and select the files to upload. If you wish for
+                your files to be attached to a specific record, name the file as the System ID of that file (i.e. 11898208).
+                Multiple files are support by holding command/control while selecting files.</p>
+        </div>
+        <div class="row marketing">
+            <div class="col-lg-12">
+                <form action="/" enctype="multipart/form-data" method="post" name="something">
+                    <div class="form-group">
+                        <label for="example-text-input" class="col-2 col-form-label">Company Shortname</label>
+                        <div class="col-10">
+                            <input class="form-control" type="text" value="BKDVNetSuite2" id="company-short-name" name="company">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                            <label for="example-text-input" class="col-2 col-form-label">API Key</label>
+                            <div class="col-10">
+                                <input class="form-control" type="text" value="8rnkvyatbwp6bioul47zb5xipmih8zw1" id="api_key" name="api_key">
+                            </div>
+                        </div>
+                    <div class="form-group">
+                        <label for="example-text-input" class="col-2 col-form-label">Username</label>
+                        <div class="col-10">
+                            <input class="form-control" type="text" value="jlamb" id="username" name="username">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="example-password-input" class="col-2 col-form-label">Password</label>
+                        <div class="col-10">
+                            <input class="form-control" type="password" value="c76%WoCI3d" id="password" name="password">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="exampleSelect1">Document Type</label>
+                        <select class="form-control" id="exampleSelect1" name="document_type">
+                            <option value="HR_EMPLOYEE_DOCUMENT">Employee Document</option>
+                            <option value="COMPANY_DOCUMENT">Company Document</option>
+                            <option value="TIMESHEET_DOCUMENT">Timsheet Document</option>
+                            <option value="HR_APPLICANT_RESUME">Applicant Resume</option>
+                            <option value="BENEFIT_REQUEST_DOCUMENT">Benefit Request Document</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="example-password-input" class="col-2 col-form-label">File Upload</label>
+                        <div class="col-10">
+                            <input type="file" name="files-to-upload" multiple>
+                        </div>
+                    </div>
+                    <button type="submit" value="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+        <footer class="footer" style="padding-top: 25px;">
+            <p>&copy; 2018 BerganKDV</p>
+        </footer>
+</body>
+
+</html>
