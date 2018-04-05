@@ -134,6 +134,8 @@ app.post('/upload', upload.array('files-to-upload', 500), function (req, res) {
 
 app.get('/progress', (req, res) => {
     const hash = req.query.hash;
+    console.log('Hash', hash);
+    console.log('Progress', progressStorage[hash]);
     res.send(progressStorage[hash]);
 });
 
