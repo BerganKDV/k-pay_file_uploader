@@ -20,7 +20,7 @@ app.post('/upload', upload.array('files-to-upload', 500), function (req, res) {
     console.log('File', req.files);
     console.log('Text', req.body);
     async function uploadToKpay(config) {
-        console.log('Config', config);
+        // console.log('Config', config);
         const { company, api_key, username, password, document_type, file } = config;
         try {
             const credentials = {
@@ -62,8 +62,8 @@ app.post('/upload', upload.array('files-to-upload', 500), function (req, res) {
             console.log('Upload Response', uploadRes.status);
 
             // Increase the progress
-            const percentComplete = Math.round((progressStorage[hash].filesProcessed  / progressStorage[hash].totalFiles) * 1000) / 10;
             progressStorage[hash].filesProcessed += 1;
+            const percentComplete = Math.round((progressStorage[hash].filesProcessed  / progressStorage[hash].totalFiles) * 1000) / 10;
             progressStorage[hash].percentComplete = percentComplete;
             console.log('Progress', progressStorage[hash]);
 
@@ -134,7 +134,7 @@ app.post('/upload', upload.array('files-to-upload', 500), function (req, res) {
 
 app.get('/progress', (req, res) => {
     const hash = req.query.hash;
-    console.log('Hash', hash);
+    // console.log('Hash', hash);
     console.log('Progress', progressStorage[hash]);
     res.send(progressStorage[hash]);
 });
