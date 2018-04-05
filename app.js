@@ -16,7 +16,7 @@ app.get('/', (req, res) => {
 });
 
 // Process form data
-app.post('/', upload.array('files-to-upload', 500), function (req, res) {
+app.post('/upload', upload.array('files-to-upload', 500), function (req, res) {
     console.log('File', req.files);
     console.log('Text', req.body);
     async function uploadToKpay(config) {
@@ -34,7 +34,7 @@ app.post('/', upload.array('files-to-upload', 500), function (req, res) {
                 }
             }
             const tokenRes = await axios.post('https://secure.saashr.com/ta/rest/v1/login', credentials, config);
-            console.log('Token Response', tokenRes.data);
+            // console.log('Token Response', tokenRes.data);
             const tokenObj = tokenRes.data;
             const linked_id = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
             const docObj = {
@@ -44,18 +44,16 @@ app.post('/', upload.array('files-to-upload', 500), function (req, res) {
                 description: 'Test description.',
                 linked_id
             }
-            // console.log('Document Obj', docObj);
             delete config.headers['Api-Key'];
             config.headers['Authentication'] = `Bearer ${tokenObj.token}`;
-            // console.log('Header config', config);
             const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
-            console.log('Document Response', docRes.headers.location);
+            // console.log('Document Response', docRes.headers.location);
             if (docRes.status !== 201)
                 throw docRes.body;
 
             const location = docRes.headers.location;
             const ticketRes = await axios.get(location, config);
-            console.log('Ticket Response', ticketRes.data);
+            // console.log('Ticket Response', ticketRes.data);
             if (ticketRes.status !== 200)
                 throw ticketRes.body;
 
@@ -64,8 +62,9 @@ app.post('/', upload.array('files-to-upload', 500), function (req, res) {
             console.log('Upload Response', uploadRes.status);
 
             // Increase the progress
+            const percentComplete = Math.round((progressStorage[hash].filesProcessed  / progressStorage[hash].totalFiles) * 1000) / 10;
             progressStorage[hash].filesProcessed += 1;
-            progressStorage[hash].percentComplete = (progressStorage[hash].filesProcessed  / progressStorage[hash].totalFiles) * 100;
+            progressStorage[hash].percentComplete = percentComplete;
             console.log('Progress', progressStorage[hash]);
 
             function wait(x) {
@@ -78,13 +77,16 @@ app.post('/', upload.array('files-to-upload', 500), function (req, res) {
         }
     }
 
-    if (!req.file && !req.files) {
-        res.end('No File Selected');
+    if (req.files.length === 0) {
+        console.log('No Files');
+        res.send({ 
+            status: 'failure',
+            message: 'No File Selected'
+        });
         return;
     }
 
     let files = req.files;
-    if (!files) files = [req.file];
 
     // Create the array of configs
     const configs = [];
@@ -124,7 +126,15 @@ app.post('/', upload.array('files-to-upload', 500), function (req, res) {
     }
     processArray(configs);
 
-    res.redirect('/');
+    res.send({ 
+        status: 'success', 
+        message: hash 
+    });
+});
+
+app.get('/progress', (req, res) => {
+    const hash = req.query.hash;
+    res.send(progressStorage[hash]);
 });
 
 app.listen(process.env.PORT || 3000);
