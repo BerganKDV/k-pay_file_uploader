@@ -1,18 +1,24 @@
 const express = require('express');
 const multer = require('multer');
 const axios = require('axios');
-
-// const upload = multer({
-//   dest: 'uploads/' // this saves your file into a directory called 'uploads'
-// }); 
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+const path = require('path');
+const fs = require('fs');
+const tempFolder = process.env.NODE_ENV === 'Production' ? '/tmp' : './tmp';
+const upload = multer({ dest: tempFolder });
+// const util = require('promisify');
+// const promisify = util.promisify;
+const { promisify } = require('util');
+// import { promisify } from 'util';
+fs.readFileAsync = promisify(fs.readFile);
+// const storage = multer.memoryStorage();
+// const upload = multer({ storage: storage });
 const progressStorage = {};
 
 const app = express();
+app.use(express.static(__dirname + '/public'));
 
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
+    res.sendFile(__dirname + '/public/index.html');
 });
 
 // Process form data
@@ -21,8 +27,8 @@ const fields = [
     { name: 'mapping-file-to-upload', maxCount: 1 }
 ];
 app.post('/upload', upload.fields(fields), function (req, res) {
-    console.log('File', req.files);
-    console.log('Text', req.body);
+
+    // Upload to K-Pay helper func
     async function uploadToKpay(config) {
         console.log('Config', config);
         const { company, api_key, username, password, document_type, file, rec_id } = config;
@@ -64,27 +70,33 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             config.headers['Authentication'] = `Bearer ${tokenObj.token}`;
             const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
             // console.log('Document Response', docRes.headers.location);
-            if (docRes.status !== 201)
+            if (docRes.status !== 201) {
                 throw docRes.body;
+                return;
+            }
 
             const location = docRes.headers.location;
             const ticketRes = await axios.get(location, config);
             // console.log('Ticket Response', ticketRes.data);
             if (ticketRes.status !== 200) {
-                res.send({
-                    status: 'failure',
-                    message: 'Bad File Data for file ' + file.originalname
-                });
+                throw file.originalname
                 return;
             }
 
             const ticketUrl = ticketRes.data._links.content_rw;
-            const uploadRes = await axios.post(ticketUrl, file.buffer, { headers: { 'Content-Type': file.mimetype } });
+            const buffer = await fs.readFileAsync(file.path);
+            const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
             console.log('Upload Response', uploadRes.status);
+
+            // Cleanup file
+            fs.unlink(file.path, (err) => {
+                if (err) throw err;
+            });
 
             // Increase the progress
             increaseProgress();
 
+            // Wait so you don't hit usage limits
             await wait(3800);
 
         } catch (err) {
@@ -94,24 +106,29 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                 file: file.originalname,
                 message: 'Bad File Data for file'
             })
+
+            // Cleanup file
+            fs.unlink(file.path, (err) => {
+                if (err) throw err;
+            });
             await wait(3800);
         }
     }
 
+    // Convert To Object Helper Func
     function csvToObj(csv) {
         csv = csv.replace(/\r/g, '');
         const lines = csv.split('\n');
         const result = [];
         const headers = lines[0].split(',');
+
+        // Fix the weird character in front of text issue
         let systemIdIndex = -1;
         headers.forEach((header, i) => {
-            if (header.indexOf('system_id') >= 0) {
-                systemIdIndex = i;
-            }
+            if (header.indexOf('system_id') >= 0) systemIdIndex = i;
         });
-        if (systemIdIndex >= 0) {
-            headers[systemIdIndex] = 'system_id';
-        }
+        if (systemIdIndex >= 0) headers[systemIdIndex] = 'system_id';
+
         for (let i = 1; i < lines.length; i++) {
             const obj = {};
             const currentline = lines[i].split(',');
@@ -123,43 +140,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         return result;
     }
 
-    let mappingObj = {};
-    if (req.files['mapping-file-to-upload'].length !== 0) {
-        const buffer = req.files['mapping-file-to-upload'][0].buffer;
-        mappingObj = csvToObj(buffer.toString('utf8'));
-        console.log('Mapping', mappingObj);
-    }
-
-
-    if (req.files['files-to-upload'].length === 0) {
-        console.log('No Files');
-        res.send({
-            status: 'failure',
-            message: 'No File Selected'
-        });
-        return;
-    }
-
-    let files = req.files['files-to-upload'];
-
-    // Create the array of configs
-    const configs = [];
-    files.forEach((fileObj) => {
-        const rowIndex = mappingObj.map(rec => rec.file_name).indexOf(fileObj.originalname);
-        const rec_id = rowIndex >= 0 ? mappingObj[rowIndex].system_id : '';
-
-        configs.push({
-            company: req.body.company,
-            api_key: req.body.api_key,
-            username: req.body.username,
-            password: req.body.password,
-            document_type: req.body.document_type,
-            rec_id,
-            file: fileObj
-        });
-    });
-
-    // Create a unique hash for the job
+    // Create unique hash helper func
     function generateHash() {
         function s4() {
             return Math.floor((1 + Math.random()) * 0x10000)
@@ -168,34 +149,96 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         }
         return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
     }
-    const hash = generateHash();
-    console.log('Hash', hash);
-    progressStorage[hash] = {
-        totalFiles: files.length,
-        filesProcessed: 0,
-        percentComplete: 0,
-        errors: []
-    }
-    console.log('Progress', progressStorage[hash]);
 
-    async function processArray(configs) {
-        for (const config of configs) {
-            await uploadToKpay(config);
+    console.log('File', req.files);
+    console.log('Text', req.body);
+    const mappingFiles = req.files['mapping-file-to-upload'];
+    // console.log('Mapping File', mappingFiles);
+
+    // Validate mapping file
+    if (mappingFiles && mappingFiles[0].mimetype !== 'text/csv') {
+        console.log('Incorrect File Type');
+        res.send({
+            status: 'failure',
+            message: 'Incorrect mapping file type, must be a CSV file.'
+        });
+        return;
+    }
+
+    // Validate files to upload
+    if (!req.files['files-to-upload']) {
+        console.log('No Files');
+        res.send({
+            status: 'failure',
+            message: 'No File Selected'
+        });
+        return;
+    }
+
+    async function processFiles() {
+        let mappingObj = {};
+        try {
+            if (mappingFiles.length !== 0) {
+                const csvTextFile = await fs.readFileAsync(mappingFiles[0].path, 'utf8');
+                mappingObj = csvToObj(csvTextFile);
+                // console.log('Mapping', mappingObj);
+
+                // Cleanup mapping file
+                fs.unlink(mappingFiles[0].path, (err) => {
+                    if (err) throw err;
+                });
+            }
+
+            // Create the array of configs
+            const configs = [];
+            let files = req.files['files-to-upload'];
+            files.forEach((fileObj) => {
+                const rowIndex = mappingObj.map(rec => rec.file_name).indexOf(fileObj.originalname);
+                const rec_id = rowIndex >= 0 ? mappingObj[rowIndex].system_id : '';
+
+                configs.push({
+                    company: req.body.company,
+                    api_key: req.body.api_key,
+                    username: req.body.username,
+                    password: req.body.password,
+                    document_type: req.body.document_type,
+                    rec_id,
+                    file: fileObj
+                });
+            });
+
+            progressStorage[hash] = {
+                totalFiles: files.length,
+                filesProcessed: 0,
+                percentComplete: 0,
+                errors: []
+            }
+
+            async function processArray(configs) {
+                for (const config of configs) {
+                    await uploadToKpay(config);
+                }
+            }
+            processArray(configs);
+        } catch (err) {
+            console.log('Error', err);
         }
     }
-    processArray(configs);
 
-    res.send({
-        status: 'success',
-        message: hash
-    });
+    processFiles();
+
+    // Generate unique hash
+    const hash = generateHash();
+    console.log('Hash', hash);
+
+    res.send({ status: 'success', message: hash });
 });
 
 app.get('/progress', (req, res) => {
     const hash = req.query.hash;
     // console.log('Hash', hash);
-    const progressObj = progressStorage[hash];
-    
+    const progressObj = progressStorage[hash] ? progressStorage[hash] : 0;
+
     console.log('Progress', progressStorage[hash]);
     res.send(progressStorage[hash]);
 });
