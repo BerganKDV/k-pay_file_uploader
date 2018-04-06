@@ -5,13 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const tempFolder = process.env.NODE_ENV === 'Production' ? '/tmp' : './tmp';
 const upload = multer({ dest: tempFolder });
-// const util = require('promisify');
-// const promisify = util.promisify;
 const { promisify } = require('util');
-// import { promisify } from 'util';
 fs.readFileAsync = promisify(fs.readFile);
-// const storage = multer.memoryStorage();
-// const upload = multer({ storage: storage });
 const progressStorage = {};
 
 const app = express();
