@@ -16,12 +16,28 @@ app.get('/', (req, res) => {
 });
 
 // Process form data
-app.post('/upload', upload.array('files-to-upload', 500), function (req, res) {
+const fields = [
+    { name: 'files-to-upload', maxCount: 1000 },
+    { name: 'mapping-file-to-upload', maxCount: 1 }
+];
+app.post('/upload', upload.fields(fields), function (req, res) {
     console.log('File', req.files);
     console.log('Text', req.body);
     async function uploadToKpay(config) {
-        // console.log('Config', config);
-        const { company, api_key, username, password, document_type, file } = config;
+        console.log('Config', config);
+        const { company, api_key, username, password, document_type, file, rec_id } = config;
+
+        function increaseProgress() {
+            progressStorage[hash].filesProcessed += 1;
+            const percentComplete = Math.round((progressStorage[hash].filesProcessed / progressStorage[hash].totalFiles) * 1000) / 10;
+            progressStorage[hash].percentComplete = percentComplete;
+            console.log('Progress', progressStorage[hash]);
+        }
+
+        function wait(x) {
+            return new Promise(resolve => setTimeout(resolve, x));
+        }
+
         try {
             const credentials = {
                 credentials: { username, password, company }
@@ -36,7 +52,7 @@ app.post('/upload', upload.array('files-to-upload', 500), function (req, res) {
             const tokenRes = await axios.post('https://secure.saashr.com/ta/rest/v1/login', credentials, config);
             // console.log('Token Response', tokenRes.data);
             const tokenObj = tokenRes.data;
-            const linked_id = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+            let linked_id = rec_id ? rec_id : file.originalname.substring(0, file.originalname.lastIndexOf('.'));
             const docObj = {
                 type: document_type,
                 file_name: file.originalname,
@@ -54,49 +70,91 @@ app.post('/upload', upload.array('files-to-upload', 500), function (req, res) {
             const location = docRes.headers.location;
             const ticketRes = await axios.get(location, config);
             // console.log('Ticket Response', ticketRes.data);
-            if (ticketRes.status !== 200)
-                throw ticketRes.body;
+            if (ticketRes.status !== 200) {
+                res.send({
+                    status: 'failure',
+                    message: 'Bad File Data for file ' + file.originalname
+                });
+                return;
+            }
 
             const ticketUrl = ticketRes.data._links.content_rw;
             const uploadRes = await axios.post(ticketUrl, file.buffer, { headers: { 'Content-Type': file.mimetype } });
             console.log('Upload Response', uploadRes.status);
 
             // Increase the progress
-            progressStorage[hash].filesProcessed += 1;
-            const percentComplete = Math.round((progressStorage[hash].filesProcessed  / progressStorage[hash].totalFiles) * 1000) / 10;
-            progressStorage[hash].percentComplete = percentComplete;
-            console.log('Progress', progressStorage[hash]);
+            increaseProgress();
 
-            function wait(x) {
-                return new Promise(resolve => setTimeout(resolve, x));
-            }
             await wait(3800);
 
         } catch (err) {
-            console.error('Error', err);
+            // console.error('Error', err);
+            increaseProgress();
+            progressStorage[hash].errors.push({
+                file: file.originalname,
+                message: 'Bad File Data for file'
+            })
+            await wait(3800);
         }
     }
 
-    if (req.files.length === 0) {
+    function csvToObj(csv) {
+        csv = csv.replace(/\r/g, '');
+        const lines = csv.split('\n');
+        const result = [];
+        const headers = lines[0].split(',');
+        let systemIdIndex = -1;
+        headers.forEach((header, i) => {
+            if (header.indexOf('system_id') >= 0) {
+                systemIdIndex = i;
+            }
+        });
+        if (systemIdIndex >= 0) {
+            headers[systemIdIndex] = 'system_id';
+        }
+        for (let i = 1; i < lines.length; i++) {
+            const obj = {};
+            const currentline = lines[i].split(',');
+            for (var j = 0; j < headers.length; j++) {
+                obj[headers[j]] = currentline[j];
+            }
+            result.push(obj);
+        }
+        return result;
+    }
+
+    let mappingObj = {};
+    if (req.files['mapping-file-to-upload'].length !== 0) {
+        const buffer = req.files['mapping-file-to-upload'][0].buffer;
+        mappingObj = csvToObj(buffer.toString('utf8'));
+        console.log('Mapping', mappingObj);
+    }
+
+
+    if (req.files['files-to-upload'].length === 0) {
         console.log('No Files');
-        res.send({ 
+        res.send({
             status: 'failure',
             message: 'No File Selected'
         });
         return;
     }
 
-    let files = req.files;
+    let files = req.files['files-to-upload'];
 
     // Create the array of configs
     const configs = [];
     files.forEach((fileObj) => {
+        const rowIndex = mappingObj.map(rec => rec.file_name).indexOf(fileObj.originalname);
+        const rec_id = rowIndex >= 0 ? mappingObj[rowIndex].system_id : '';
+
         configs.push({
             company: req.body.company,
             api_key: req.body.api_key,
             username: req.body.username,
             password: req.body.password,
             document_type: req.body.document_type,
+            rec_id,
             file: fileObj
         });
     });
@@ -115,7 +173,8 @@ app.post('/upload', upload.array('files-to-upload', 500), function (req, res) {
     progressStorage[hash] = {
         totalFiles: files.length,
         filesProcessed: 0,
-        percentComplete: 0
+        percentComplete: 0,
+        errors: []
     }
     console.log('Progress', progressStorage[hash]);
 
@@ -126,15 +185,17 @@ app.post('/upload', upload.array('files-to-upload', 500), function (req, res) {
     }
     processArray(configs);
 
-    res.send({ 
-        status: 'success', 
-        message: hash 
+    res.send({
+        status: 'success',
+        message: hash
     });
 });
 
 app.get('/progress', (req, res) => {
     const hash = req.query.hash;
     // console.log('Hash', hash);
+    const progressObj = progressStorage[hash];
+    
     console.log('Progress', progressStorage[hash]);
     res.send(progressStorage[hash]);
 });

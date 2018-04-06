@@ -45,6 +45,14 @@
             <p class="lead">Simply fill out your company shortname, api key, username and password and select the files to upload. If you
                 wish for your files to be attached to a specific record, name the file as the System ID of that record (i.e.
                 "11898208.pdf"). Multiple files are support by holding command/control while selecting files.</p>
+            <p class="lead">
+                If you wish to maintain your file names you can include an optional mapping csv file. In this file include a "system_id"
+                and a "file_name" column in your first row. Populate the K-Pay system id for each record you wish to attach
+                a file to under the "system_id" header. Populate the file name for the matching file under the "file_name"
+                column. If you have multiple files going to the same system id simply duplicate the system id on multiple
+                rows.
+            </p>
+            <img class="logo" width="100%" src="./images/csv_example.jpg">
         </div>
         <div class="row marketing">
             <div class="col-lg-12">
@@ -86,6 +94,12 @@
                         </div>
                     </div>
                     <div class="form-group">
+                        <label for="example-password-input" class="col-3 col-form-label">Mapping File Upload</label>
+                        <div class="col-10">
+                            <input type="file" name="mapping-file-to-upload">
+                        </div>
+                    </div>
+                    <div class="form-group">
                         <label for="example-password-input" class="col-3 col-form-label">File Upload</label>
                         <div class="col-10">
                             <input type="file" name="files-to-upload" multiple>
@@ -101,7 +115,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- <button type="submit" value="submit" class="btn btn-primary">Submit</button> -->
                     <div class="form-group">
                         <div class="col-10">
                             <button type="button" class="btn btn-primary" onclick="submitFiles()">Submit</button>
@@ -136,6 +149,9 @@
                                 document.getElementById('file_progress').className = 'progress-bar bg-success';
                                 console.log('Finished');
                                 clearInterval(interval);
+                                if (progress.errors.length > 0) {
+                                    alert('Error uploading the following files: \n' + JSON.stringify(progress.errors));
+                                }
                             }
                         })
                     }, 2000);
