@@ -152,7 +152,8 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     // console.log('Mapping File', mappingFiles);
 
     // Validate mapping file
-    if (mappingFiles && mappingFiles[0].mimetype !== 'text/csv') {
+    // if (mappingFiles && mappingFiles[0].mimetype !== 'text/csv') {
+    if (mappingFiles && (mappingFiles[0].originalname.indexOf('.csv' >= 0))) {
         console.log('Incorrect File Type');
         res.send({
             status: 'failure',
