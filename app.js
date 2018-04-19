@@ -113,16 +113,17 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     // Convert To Object Helper Func
     function csvToObj(csv) {
         csv = csv.replace(/\r/g, '');
+        csv = csv.replace(/^\uFEFF/, '');
         const lines = csv.split('\n');
         const result = [];
         const headers = lines[0].split(',');
 
         // Fix the weird character in front of text issue
-        let systemIdIndex = -1;
-        headers.forEach((header, i) => {
-            if (header.indexOf('system_id') >= 0) systemIdIndex = i;
-        });
-        if (systemIdIndex >= 0) headers[systemIdIndex] = 'system_id';
+        // let systemIdIndex = -1;
+        // headers.forEach((header, i) => {
+        //     if (header.indexOf('system_id') >= 0) systemIdIndex = i;
+        // });
+        // if (systemIdIndex >= 0) headers[systemIdIndex] = 'system_id';
 
         for (let i = 1; i < lines.length; i++) {
             const obj = {};

@@ -165,7 +165,7 @@
                 document.getElementById('file_progress').className = 'progress-bar progress-bar-striped progress-bar-animated bg-warning';
                 document.getElementById('file_progress').textContent = 'Starting...';
 
-                // Uplaod form data
+                // Upload form data
                 var formData = new FormData(document.getElementById('file-upload-form'));
                 fetch('/upload', {
                     method: 'POST',
