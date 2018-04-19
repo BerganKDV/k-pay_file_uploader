@@ -172,9 +172,9 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     }
 
     async function processFiles() {
-        let mappingObj = {};
+        let mappingObj = [];
         try {
-            if (mappingFiles.length !== 0) {
+            if (mappingFiles && mappingFiles.length !== 0) {
                 const csvTextFile = await fs.readFileAsync(mappingFiles[0].path, 'utf8');
                 mappingObj = csvToObj(csvTextFile);
                 // console.log('Mapping', mappingObj);
