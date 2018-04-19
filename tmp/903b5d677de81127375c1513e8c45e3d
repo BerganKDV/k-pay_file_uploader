@@ -1,0 +1,45 @@
+function printFunc() {
+    var date = rec.getText({ fieldId: 'custpage_npsdate' });
+    var customer = rec.getText({ fieldId: 'custpage_customer' });
+    var children = rec.getValue({ fieldId: 'custpage_children' });
+
+    // Convert images to base64
+    var npsImg = npsChart.toBase64Image();
+    var emailImg = emailChart.toBase64Image();
+    var improvementImg = improvementChart.toBase64Image();
+
+    // Prepare suitelet data and url
+    var data = {
+        npsImg: npsImg,
+        emailImg: emailImg,
+        improvementImg: improvementImg,
+        date: date,
+        customer: customer,
+        children: children
+    };
+    var printUrl = url.resolveScript({
+        scriptId: 'customscript_nps_print_suitelet',
+        deploymentId: 'customdeploy_nps_print_suitelet',
+    });
+
+    // Create a form
+    var form = document.createElement('form');
+    form.target = '_blank';
+    form.method = 'POST';
+    form.action = printUrl;
+
+    // Create an input
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.name = 'data';
+    input.value = JSON.stringify(data);
+
+    // Add the input to the form
+    form.appendChild(input);
+
+    // Add the form to dom
+    document.body.appendChild(form);
+
+    // Submit the form
+    form.submit();
+}

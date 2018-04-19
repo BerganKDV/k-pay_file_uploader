@@ -26,7 +26,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     // Upload to K-Pay helper func
     async function uploadToKpay(config) {
         console.log('Config', config);
-        const { company, api_key, username, password, document_type, file, rec_id } = config;
+        const { company, api_key, username, password, type, file, rec_id, document_type, description } = config;
 
         function increaseProgress() {
             progressStorage[hash].filesProcessed += 1;
@@ -55,12 +55,13 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             const tokenObj = tokenRes.data;
             let linked_id = rec_id ? rec_id : file.originalname.substring(0, file.originalname.lastIndexOf('.'));
             const docObj = {
-                type: document_type,
                 file_name: file.originalname,
                 display_name: file.originalname,
-                description: 'Test description.',
+                type,
                 linked_id
             }
+            if (document_type) docObj.document_type = { id: document_type };
+            if (description) docObj.description = description;
             delete config.headers['Api-Key'];
             config.headers['Authentication'] = `Bearer ${tokenObj.token}`;
             const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
@@ -95,7 +96,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             await wait(3800);
 
         } catch (err) {
-            // console.error('Error', err);
+            console.error('Error', err);
             increaseProgress();
             progressStorage[hash].errors.push({
                 file: file.originalname,
@@ -153,14 +154,19 @@ app.post('/upload', upload.fields(fields), function (req, res) {
 
     // Validate mapping file
     // if (mappingFiles && mappingFiles[0].mimetype !== 'text/csv') {
-    // if (mappingFiles && (mappingFiles[0].originalname.indexOf('.csv' >= 0))) {
-    //     console.log('Incorrect File Type');
-    //     res.send({
-    //         status: 'failure',
-    //         message: 'Incorrect mapping file type, must be a CSV file.'
-    //     });
-    //     return;
-    // }
+    if (mappingFiles) {
+        const mappingFileName = mappingFiles[0].originalname;
+        const extension = mappingFileName.substr(mappingFileName.length - 4);
+        console.log('Extension', extension);
+        if (mappingFileName.substr(mappingFileName.length - 4) !== '.csv') {
+            console.log('Incorrect File Type');
+            res.send({
+                status: 'failure',
+                message: 'Incorrect mapping file type, must be a CSV file.'
+            });
+            return;
+        }
+    }
 
     // Validate files to upload
     if (!req.files['files-to-upload']) {
@@ -192,14 +198,22 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             files.forEach((fileObj) => {
                 const rowIndex = mappingObj.map(rec => rec.file_name).indexOf(fileObj.originalname);
                 const rec_id = rowIndex >= 0 ? mappingObj[rowIndex].system_id : '';
+                const document_type = rowIndex >= 0 && mappingObj[rowIndex].document_type_id ?
+                    mappingObj[rowIndex].document_type_id :
+                    '';
+                const description = rowIndex >= 0 && mappingObj[rowIndex].description ?
+                    mappingObj[rowIndex].description :
+                    '';
 
                 configs.push({
                     company: req.body.company,
                     api_key: req.body.api_key,
                     username: req.body.username,
                     password: req.body.password,
-                    document_type: req.body.document_type,
+                    type: req.body.document_type,
                     rec_id,
+                    document_type,
+                    description,
                     file: fileObj
                 });
             });
