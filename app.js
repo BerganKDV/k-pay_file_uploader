@@ -220,19 +220,18 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             console.log('Error', err);
         }
     }
-
-    processFiles();
-
     // Generate unique hash
     const hash = generateHash();
     console.log('Hash', hash);
+    
+    processFiles();
 
     res.send({ status: 'success', message: hash });
 });
 
 app.get('/progress', (req, res) => {
     const hash = req.query.hash;
-    // console.log('Hash', hash);
+    console.log('Hash', hash);
     const progressObj = progressStorage[hash] ? progressStorage[hash] : 0;
 
     console.log('Progress', progressStorage[hash]);
