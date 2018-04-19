@@ -153,14 +153,14 @@ app.post('/upload', upload.fields(fields), function (req, res) {
 
     // Validate mapping file
     // if (mappingFiles && mappingFiles[0].mimetype !== 'text/csv') {
-    if (mappingFiles && (mappingFiles[0].originalname.indexOf('.csv' >= 0))) {
-        console.log('Incorrect File Type');
-        res.send({
-            status: 'failure',
-            message: 'Incorrect mapping file type, must be a CSV file.'
-        });
-        return;
-    }
+    // if (mappingFiles && (mappingFiles[0].originalname.indexOf('.csv' >= 0))) {
+    //     console.log('Incorrect File Type');
+    //     res.send({
+    //         status: 'failure',
+    //         message: 'Incorrect mapping file type, must be a CSV file.'
+    //     });
+    //     return;
+    // }
 
     // Validate files to upload
     if (!req.files['files-to-upload']) {
