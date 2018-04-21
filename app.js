@@ -26,7 +26,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     // Upload to K-Pay helper func
     async function uploadToKpay(config) {
         console.log('Config', config);
-        const { company, api_key, username, password, type, file, rec_id, document_type, description } = config;
+        const { company, api_key, username, password, type, file, rec_id, document_type, description, employee_photo } = config;
 
         function increaseProgress() {
             progressStorage[hash].filesProcessed += 1;
@@ -64,25 +64,43 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             if (description) docObj.description = description;
             delete config.headers['Api-Key'];
             config.headers['Authentication'] = `Bearer ${tokenObj.token}`;
-            const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
-            // console.log('Document Response', docRes.headers.location);
-            if (docRes.status !== 201) {
-                throw docRes.body;
-                return;
-            }
 
-            const location = docRes.headers.location;
-            const ticketRes = await axios.get(location, config);
-            // console.log('Ticket Response', ticketRes.data);
-            if (ticketRes.status !== 200) {
-                throw file.originalname
-                return;
-            }
+            // If it's an employee photo just upload the photo
+            if (employee_photo.toLowerCase() === 'yes') {
+                const docRes = await axios.get(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/employees/${linked_id}`, config);
+                if (docRes.status !== 200) {
+                    throw docRes.body;
+                    return;
+                }
+                // console.log('Document Response', docRes.data);
+    
+                const ticketUrl = docRes.data.photo_href;
+                const buffer = await fs.readFileAsync(file.path);
+                const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
+                console.log('Upload Response', uploadRes.status);
 
-            const ticketUrl = ticketRes.data._links.content_rw;
-            const buffer = await fs.readFileAsync(file.path);
-            const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
-            console.log('Upload Response', uploadRes.status);
+            // Otherwise upload to the document storage
+            } else {
+                const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
+                // console.log('Document Response', docRes.headers.location);
+                if (docRes.status !== 201) {
+                    throw docRes.body;
+                    return;
+                }
+    
+                const location = docRes.headers.location;
+                const ticketRes = await axios.get(location, config);
+                // console.log('Ticket Response', ticketRes.data);
+                if (ticketRes.status !== 200) {
+                    throw file.originalname
+                    return;
+                }
+    
+                const ticketUrl = ticketRes.data._links.content_rw;
+                const buffer = await fs.readFileAsync(file.path);
+                const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
+                console.log('Upload Response', uploadRes.status);
+            }
 
             // Cleanup file
             fs.unlink(file.path, (err) => {
@@ -119,13 +137,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         const result = [];
         const headers = lines[0].split(',');
 
-        // Fix the weird character in front of text issue
-        // let systemIdIndex = -1;
-        // headers.forEach((header, i) => {
-        //     if (header.indexOf('system_id') >= 0) systemIdIndex = i;
-        // });
-        // if (systemIdIndex >= 0) headers[systemIdIndex] = 'system_id';
-
         for (let i = 1; i < lines.length; i++) {
             const obj = {};
             const currentline = lines[i].split(',');
@@ -153,7 +164,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     // console.log('Mapping File', mappingFiles);
 
     // Validate mapping file
-    // if (mappingFiles && mappingFiles[0].mimetype !== 'text/csv') {
     if (mappingFiles) {
         const mappingFileName = mappingFiles[0].originalname;
         const extension = mappingFileName.substr(mappingFileName.length - 4);
@@ -204,6 +214,9 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                 const description = rowIndex >= 0 && mappingObj[rowIndex].description ?
                     mappingObj[rowIndex].description :
                     '';
+                const employee_photo = rowIndex >= 0 && mappingObj[rowIndex].employee_photo ?
+                    mappingObj[rowIndex].employee_photo :
+                    '';
 
                 configs.push({
                     company: req.body.company,
@@ -214,6 +227,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                     rec_id,
                     document_type,
                     description,
+                    employee_photo,
                     file: fileObj
                 });
             });

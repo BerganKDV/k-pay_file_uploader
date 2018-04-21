@@ -26,6 +26,10 @@
             transition-timing-function: linear, step-end;
             margin: 0;
         }
+
+        body {
+            line-height: 1.4;
+        }
     </style>
 </head>
 
@@ -46,21 +50,32 @@
                 wish for your files to be attached to a specific record, name the file as the System ID of that record (i.e.
                 "11898208.pdf"). Multiple files are support by holding command/control while selecting files.</p>
             <p class="lead">
-                If you wish to maintain your file names you can include an optional mapping csv file. In this file include a "system_id"
-                and a "file_name" column in your first row. Populate the K-Pay system id for each record you wish to attach
-                a file to under the "system_id" header. Populate the file name for the matching file under the "file_name"
-                column. If you have multiple files going to the same system id simply duplicate the system id on multiple
-                rows. You can acquire the system id by running a report in K-Pay for the record you want to attach documents
-                to and include the System ID column, then export this to excel.
-            </p>
-            <p class="lead">
-                You may also include an optional "document_type_id" and "description" column. If you include the document type column you
-                must fill in the system id for the document type which can be found using the Document Types API. The description
-                can be set to any text you like.
+                You may also upload a mapping file, which allows you to keep your file names the same and include more information about
+                the uploaded files. To include a mapping file follow the instructions below:
+                <ol class="lead">
+                    <li>Download the sample mapping csv file.</li>
+                    <li>Put the name of the file that this line corresponds to in the first column.</li>
+                    <li>Put the System ID of the record you wish to attach the file to in the "system_id" column. You can find
+                        this by adding the System ID or Account ID fields to your record list in K-Pay.</li>
+                    <li>(Optional) Include a "Document Type" in the document information in K-Pay by supplying a Document Type
+                        System ID in the "document_type_id" column. Note, you can find these System IDs by making a request
+                        to the document type API as described in the
+                        <a href="https://secure.saashr.com/ta/docs/rest/index.html#_companies__cid__lookup_document-types" target="_blank">Lookup > Document Types</a> API documentation.</li>
+                    <li>(Optional) Include a description that will be included in the document description in K-Pay.</li>
+                    <li>(Optional) If your file is a photo that you wish to put in the employee photo field put a "Yes" in this
+                        column. Note that if you put a Yes in this column the file will not be stored in the Document Storage
+                        area of the employee but will only be visible in the photo area of the Account Demographics section.
+                        As such the Document Type and Description columns will be ignored.</li>
+                </ol>
             </p>
             <div style="text-align: center;">
-                <img class="logo" width="80%" src="/images/csv_example.jpg" style="text-align: center;">
+                <img class="logo" width="90%" src="/images/csv_example.jpg" style="text-align: center; padding: 10px 0 30px">
+                <br>
+                <a href="/images/mapping.csv" download>
+                    <button type="button" class="btn btn-success" onclick="submitFiles()">Download Sample CSV</button>
+                </a>
             </div>
+
         </div>
         <div class="row marketing">
             <div class="col-lg-12">
