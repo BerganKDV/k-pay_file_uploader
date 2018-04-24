@@ -158,38 +158,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
     }
 
-    // ============================================ MAIN ==============================================
-
-    console.log('File', req.files);
-    console.log('Text', req.body);
-    const mappingFiles = req.files['mapping-file-to-upload'];
-    // console.log('Mapping File', mappingFiles);
-
-    // Validate mapping file
-    if (mappingFiles) {
-        const mappingFileName = mappingFiles[0].originalname;
-        const extension = mappingFileName.substr(mappingFileName.length - 4);
-        console.log('Extension', extension);
-        if (mappingFileName.substr(mappingFileName.length - 4) !== '.csv') {
-            console.log('Incorrect File Type');
-            res.send({
-                status: 'failure',
-                message: 'Incorrect mapping file type, must be a CSV file.'
-            });
-            return;
-        }
-    }
-
-    // Validate files to upload
-    if (!req.files['files-to-upload']) {
-        console.log('No Files');
-        res.send({
-            status: 'failure',
-            message: 'No File Selected'
-        });
-        return;
-    }
-
+    // Asyncronously process files
     async function processFiles() {
         let mappingObj = [];
         try {
@@ -251,6 +220,39 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             console.log('Error', err);
         }
     }
+
+    // ============================================ MAIN ==============================================
+
+    console.log('File', req.files);
+    console.log('Text', req.body);
+    const mappingFiles = req.files['mapping-file-to-upload'];
+    // console.log('Mapping File', mappingFiles);
+
+    // Validate mapping file
+    if (mappingFiles) {
+        const mappingFileName = mappingFiles[0].originalname;
+        const extension = mappingFileName.substr(mappingFileName.length - 4);
+        console.log('Extension', extension);
+        if (mappingFileName.substr(mappingFileName.length - 4) !== '.csv') {
+            console.log('Incorrect File Type');
+            res.send({
+                status: 'failure',
+                message: 'Incorrect mapping file type, must be a CSV file.'
+            });
+            return;
+        }
+    }
+
+    // Validate files to upload
+    if (!req.files['files-to-upload']) {
+        console.log('No Files');
+        res.send({
+            status: 'failure',
+            message: 'No File Selected'
+        });
+        return;
+    }
+
     // Generate unique hash
     const hash = generateHash();
     console.log('Hash', hash);
