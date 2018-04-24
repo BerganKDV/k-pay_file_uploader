@@ -129,7 +129,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         }
     }
 
-    // Convert To Object Helper Func
+    // Convert CSV To Object Helper Func
     function csvToObj(csv) {
         csv = csv.replace(/\r/g, '');
         csv = csv.replace(/^\uFEFF/, '');
@@ -148,7 +148,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         return result;
     }
 
-    // Create unique hash helper func
+    // Create unique hash helper function
     function generateHash() {
         function s4() {
             return Math.floor((1 + Math.random()) * 0x10000)
@@ -157,6 +157,8 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         }
         return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
     }
+
+    // ============================================ MAIN ==============================================
 
     console.log('File', req.files);
     console.log('Text', req.body);

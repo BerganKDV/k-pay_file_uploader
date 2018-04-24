@@ -1,17 +1,17 @@
 {
-  "name": "k-pay_file_uploader",
-  "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app.js"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "axios": "^0.18.0",
-    "express": "^4.16.3",
-    "multer": "^1.3.0"
-  }
+    "name": "k-pay_file_uploader",
+    "version": "1.0.0",
+    "description": "",
+    "main": "app.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "node app.js"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "axios": "^0.18.0",
+        "express": "^4.16.3",
+        "multer": "^1.3.0"
+    }
 }
