@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const axios = require('axios');
-const path = require('path');
+const auth = require('basic-auth');
 const fs = require('fs');
 const tempFolder = process.env.NODE_ENV === 'Production' ? '/tmp' : './tmp';
 const upload = multer({ dest: tempFolder });
@@ -10,9 +10,26 @@ fs.readFileAsync = promisify(fs.readFile);
 const progressStorage = {};
 
 const app = express();
+const username = node.env.username;
+const password = node.env.password;
+
+app.use((req, res, next) => {
+  let user = auth(req)
+
+  if (user === undefined || user['name'] !== username || user['pass'] !== password) {
+    res.statusCode = 401
+    res.setHeader('WWW-Authenticate', 'Basic realm="Node"')
+    res.end('Incorrect username or password.')
+  } else {
+    next();
+  }
+});
+
+
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', (req, res) => {
+    consoe.log('Why is this not using the middleware?');
     res.sendFile(__dirname + '/public/index.html');
 });
 
@@ -51,7 +68,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                 }
             }
             const tokenRes = await axios.post('https://secure.saashr.com/ta/rest/v1/login', credentials, config);
-            // console.log('Token Response', tokenRes.data);
+            console.log('Token Response', tokenRes.data);
             const tokenObj = tokenRes.data;
             let linked_id = rec_id ? rec_id : file.originalname.substring(0, file.originalname.lastIndexOf('.'));
             const docObj = {
@@ -70,7 +87,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                 const docRes = await axios.get(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/employees/${linked_id}`, config);
                 if (docRes.status !== 200) {
                     throw docRes.body;
-                    return;
                 }
                 // console.log('Document Response', docRes.data);
     
@@ -81,11 +97,12 @@ app.post('/upload', upload.fields(fields), function (req, res) {
 
             // Otherwise upload to the document storage
             } else {
+                console.log('Doc Object', docObj);
                 const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
-                // console.log('Document Response', docRes.headers.location);
+                console.log('Document Response', docRes.headers.location);
                 if (docRes.status !== 201) {
+                    console.log('Error Body', docRes.body);
                     throw docRes.body;
-                    return;
                 }
     
                 const location = docRes.headers.location;
@@ -93,7 +110,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                 // console.log('Ticket Response', ticketRes.data);
                 if (ticketRes.status !== 200) {
                     throw file.originalname
-                    return;
                 }
     
                 const ticketUrl = ticketRes.data._links.content_rw;
@@ -114,7 +130,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             await wait(3800);
 
         } catch (err) {
-            console.error('Error', err);
+            // console.error('Error', err);
             increaseProgress();
             progressStorage[hash].errors.push({
                 file: file.originalname,
@@ -217,7 +233,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             }
             processArray(configs);
         } catch (err) {
-            console.log('Error', err);
+            console.log('Error', err.Error);
         }
     }
 
