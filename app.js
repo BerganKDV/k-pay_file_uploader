@@ -10,8 +10,8 @@ fs.readFileAsync = promisify(fs.readFile);
 const progressStorage = {};
 
 const app = express();
-const username = node.env.username;
-const password = node.env.password;
+const username = process.env.USERNAME;
+const password = process.env.PASSWORD;
 
 app.use((req, res, next) => {
   let user = auth(req)
