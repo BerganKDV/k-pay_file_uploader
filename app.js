@@ -10,20 +10,21 @@ fs.readFileAsync = promisify(fs.readFile);
 const progressStorage = {};
 
 const app = express();
-const username = process.env.USERNAME;
-const password = process.env.PASSWORD;
 
-app.use((req, res, next) => {
-  let user = auth(req)
+// Add basic authentication
+// const username = process.env.USERNAME;
+// const password = process.env.PASSWORD;
+// app.use((req, res, next) => {
+//   let user = auth(req)
 
-  if (user === undefined || user['name'] !== username || user['pass'] !== password) {
-    res.statusCode = 401
-    res.setHeader('WWW-Authenticate', 'Basic realm="Node"')
-    res.end('Incorrect username or password.')
-  } else {
-    next();
-  }
-});
+//   if (user === undefined || user['name'] !== username || user['pass'] !== password) {
+//     res.statusCode = 401
+//     res.setHeader('WWW-Authenticate', 'Basic realm="Node"')
+//     res.end('Incorrect username or password.')
+//   } else {
+//     next();
+//   }
+// });
 
 
 app.use(express.static(__dirname + '/public'));
