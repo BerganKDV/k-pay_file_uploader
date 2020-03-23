@@ -42,9 +42,9 @@ const fields = [
 app.post('/upload', upload.fields(fields), function (req, res) {
 
     // Upload to K-Pay helper func
-    async function uploadToKpay(config) {
+    async function uploadToKpay(config, tokenObj) {
         console.log('Config', config);
-        const { company, api_key, username, password, type, file, rec_id, document_type, description, employee_photo } = config;
+        const { company, type, file, rec_id, document_type, description, employee_photo } = config;
 
         function increaseProgress() {
             progressStorage[hash].filesProcessed += 1;
@@ -58,19 +58,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         }
 
         try {
-            const credentials = {
-                credentials: { username, password, company }
-            }
-            const config = {
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'Api-Key': api_key
-                }
-            }
-            const tokenRes = await axios.post('https://secure.saashr.com/ta/rest/v1/login', credentials, config);
-            console.log('Token Response', tokenRes.data);
-            const tokenObj = tokenRes.data;
             let linked_id = rec_id ? rec_id : file.originalname.substring(0, file.originalname.lastIndexOf('.'));
             const docObj = {
                 file_name: file.originalname,
@@ -80,11 +67,16 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             }
             if (document_type) docObj.document_type = { id: document_type };
             if (description) docObj.description = description;
-            delete config.headers['Api-Key'];
-            config.headers['Authentication'] = `Bearer ${tokenObj.token}`;
+            const config = {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authentication': `Bearer ${tokenObj.token}`,
+                }
+            }
 
             // If it's an employee photo just upload the photo
-            if (employee_photo.toLowerCase() === 'yes') {
+            if (employee_photo && employee_photo.toLowerCase() === 'yes') {
                 const docRes = await axios.get(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/employees/${linked_id}`, config);
                 if (docRes.status !== 200) {
                     throw docRes.body;
@@ -190,35 +182,67 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                 });
             }
 
+          const credentials = {
+            credentials: { username: req.body.username, password: req.body.password, company: req.body.company }
+          }
+          const config = {
+              headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json',
+                  'Api-Key': req.body.api_key
+              }
+          }
+          const tokenRes = await axios.post('https://secure.saashr.com/ta/rest/v1/login', credentials, config);
+          console.log('Token Response', tokenRes.data);
+          const tokenObj = tokenRes.data;
+          const docTypeMap = await lookupDocTypes(tokenObj.token);
+
             // Create the array of configs
             const configs = [];
             let files = req.files['files-to-upload'];
-            files.forEach((fileObj) => {
+            for (const fileObj of files) {
                 const rowIndex = mappingObj.map(rec => rec.file_name).indexOf(fileObj.originalname);
-                const rec_id = rowIndex >= 0 ? mappingObj[rowIndex].system_id : '';
-                const document_type = rowIndex >= 0 && mappingObj[rowIndex].document_type_id ?
-                    mappingObj[rowIndex].document_type_id :
-                    '';
-                const description = rowIndex >= 0 && mappingObj[rowIndex].description ?
-                    mappingObj[rowIndex].description :
-                    '';
-                const employee_photo = rowIndex >= 0 && mappingObj[rowIndex].employee_photo ?
-                    mappingObj[rowIndex].employee_photo :
-                    '';
-
-                configs.push({
-                    company: req.body.company,
-                    api_key: req.body.api_key,
-                    username: req.body.username,
-                    password: req.body.password,
-                    type: req.body.document_type,
-                    rec_id,
-                    document_type,
-                    description,
-                    employee_photo,
-                    file: fileObj
-                });
-            });
+                if (rowIndex >= 0) {
+                    const rec_id = mappingObj[rowIndex].system_id;
+                    const documentName = mappingObj[rowIndex].document_type_name;
+                    const document_type = docTypeMap[documentName];
+                    const description = mappingObj[rowIndex].description;
+                    const employee_photo = mappingObj[rowIndex].employee_photo;
+    
+                    configs.push({
+                        company: req.body.company,
+                        type: req.body.document_type,
+                        rec_id,
+                        document_type,
+                        description,
+                        employee_photo,
+                        file: fileObj
+                    });
+                }
+            }
+            // files.forEach((fileObj) => {
+            //     const rowIndex = mappingObj.map(rec => rec.file_name).indexOf(fileObj.originalname);
+            //     if (rowIndex >= 0) {
+            //         const rec_id = mappingObj[rowIndex].system_id;
+            //         const documentName = mappingObj[rowIndex].document_type_id;
+            //         const document_type = lookupDocTypeId(documentName);
+            //         const description = mappingObj[rowIndex].description;
+            //         const employee_photo = mappingObj[rowIndex].employee_photo;
+    
+            //         configs.push({
+            //             company: req.body.company,
+            //             api_key: req.body.api_key,
+            //             username: req.body.username,
+            //             password: req.body.password,
+            //             type: req.body.document_type,
+            //             rec_id,
+            //             document_type,
+            //             description,
+            //             employee_photo,
+            //             file: fileObj
+            //         });
+            //     }
+            // });
 
             progressStorage[hash] = {
                 totalFiles: files.length,
@@ -227,15 +251,37 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                 errors: []
             }
 
-            async function processArray(configs) {
-                for (const config of configs) {
-                    await uploadToKpay(config);
-                }
+            // async function processArray(configs) {
+            //     for (const config of configs) {
+            //         await uploadToKpay(config);
+            //     }
+            // }
+            // processArray(configs);
+            for (const config of configs) {
+                await uploadToKpay(config, tokenObj);
             }
-            processArray(configs);
         } catch (err) {
             console.log('Error', err.Error);
         }
+    }
+
+    async function lookupDocTypes(token) {
+      const config = {
+          headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Authentication': `Bearer ${token}`,
+          }
+      }
+      const docRes = await axios.get(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/employees/${linked_id}`, config);
+      if (docRes.status !== 200) {
+          throw docRes.body;
+      }
+      const docTypeArr = docRes.body.items;
+      const docTypeMap = docTypeArr.reduce(function (acc, docType) {
+        acc[docType.display_name] = display_id;
+      }, {});
+      return docTypeMap;
     }
 
     // ============================================ MAIN ==============================================
