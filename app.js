@@ -196,6 +196,8 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                   'Api-Key': req.body.api_key
               }
           }
+          console.log('Headers', config.headers);
+          console.log('Credentials', credentials);
           const tokenRes = await axios.post('https://secure.saashr.com/ta/rest/v1/login', credentials, config);
           console.log('Token Response', tokenRes.data);
           const tokenObj = tokenRes.data;
