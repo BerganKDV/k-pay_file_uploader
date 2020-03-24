@@ -280,6 +280,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       if (docRes.status !== 200) {
           throw docRes.body;
       }
+      console.log('Doc Type Response', docRes);
       const docTypeArr = docRes.body.items;
       const docTypeMap = docTypeArr.reduce(function (acc, docType) {
         acc[docType.display_name] = display_id;
