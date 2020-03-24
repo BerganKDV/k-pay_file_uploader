@@ -199,7 +199,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
           console.log('Headers', config.headers);
           console.log('Credentials', credentials);
           const tokenRes = await axios.post('https://secure.saashr.com/ta/rest/v1/login', credentials, config);
-          console.log('Token Response', tokenRes.data);
+          console.log('Token Response', tokenRes);
           const tokenObj = tokenRes.data;
           const docTypeMap = await lookupDocTypes(tokenObj.token);
 
