@@ -283,7 +283,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       console.log('Doc Type Response', docRes.data);
       const docTypeArr = docRes.data.items;
       const docTypeMap = docTypeArr.reduce(function (acc, docType) {
-        acc[docType.display_name] = display_id;
+        acc[docType.display_name] = displayType.id;
       }, {});
       return docTypeMap;
     }
