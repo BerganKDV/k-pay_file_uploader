@@ -193,8 +193,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                   'Api-Key': req.body.api_key
               }
           }
-          console.log('Headers', config.headers);
-          console.log('Credentials', credentials);
           const tokenRes = await axios.post('https://secure.saashr.com/ta/rest/v1/login', credentials, config);
           console.log('Token Response', tokenRes);
           const tokenObj = tokenRes.data;
@@ -223,29 +221,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                     });
                 }
             }
-            // files.forEach((fileObj) => {
-            //     const rowIndex = mappingObj.map(rec => rec.file_name).indexOf(fileObj.originalname);
-            //     if (rowIndex >= 0) {
-            //         const rec_id = mappingObj[rowIndex].system_id;
-            //         const documentName = mappingObj[rowIndex].document_type_id;
-            //         const document_type = lookupDocTypeId(documentName);
-            //         const description = mappingObj[rowIndex].description;
-            //         const employee_photo = mappingObj[rowIndex].employee_photo;
-    
-            //         configs.push({
-            //             company: req.body.company,
-            //             api_key: req.body.api_key,
-            //             username: req.body.username,
-            //             password: req.body.password,
-            //             type: req.body.document_type,
-            //             rec_id,
-            //             document_type,
-            //             description,
-            //             employee_photo,
-            //             file: fileObj
-            //         });
-            //     }
-            // });
 
             progressStorage[hash] = {
                 totalFiles: files.length,
@@ -253,13 +228,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                 percentComplete: 0,
                 errors: []
             }
-
-            // async function processArray(configs) {
-            //     for (const config of configs) {
-            //         await uploadToKpay(config);
-            //     }
-            // }
-            // processArray(configs);
             for (const config of configs) {
                 await uploadToKpay(config, tokenObj);
             }
@@ -333,8 +301,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
 app.get('/progress', (req, res) => {
     const hash = req.query.hash;
     console.log('Hash', hash);
-    const progressObj = progressStorage[hash] ? progressStorage[hash] : 0;
-
     console.log('Progress', progressStorage[hash]);
     res.send(progressStorage[hash]);
 });
