@@ -179,10 +179,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
 
                 // Cleanup mapping file
                 fs.unlink(mappingFiles[0].path, (err) => {
-                    if (err) {
-                      console.log('There was a problem deleting the file', err);
-                      throw err;
-                    }
+                    if (err) throw err;
                 });
             }
 
@@ -267,7 +264,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                 await uploadToKpay(config, tokenObj);
             }
         } catch (err) {
-            console.log('Error', err.Error);
+            console.log('Error', err);
         }
     }
 
