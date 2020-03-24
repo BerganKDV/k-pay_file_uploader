@@ -284,6 +284,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       const docTypeArr = docRes.data.items;
       const docTypeMap = docTypeArr.reduce(function (acc, docType) {
         acc[docType.display_name] = docType.id;
+        return acc;
       }, {});
       return docTypeMap;
     }
