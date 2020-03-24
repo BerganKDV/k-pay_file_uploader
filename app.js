@@ -198,7 +198,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
           const tokenRes = await axios.post('https://secure.saashr.com/ta/rest/v1/login', credentials, config);
           console.log('Token Response', tokenRes);
           const tokenObj = tokenRes.data;
-          const docTypeMap = await lookupDocTypes(tokenObj.token);
+          const docTypeMap = await lookupDocTypes(tokenObj.token, req.body.company);
 
             // Create the array of configs
             const configs = [];
@@ -268,7 +268,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         }
     }
 
-    async function lookupDocTypes(token) {
+    async function lookupDocTypes(token, company) {
       const config = {
           headers: {
               'Accept': 'application/json',
@@ -276,7 +276,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
               'Authentication': `Bearer ${token}`,
           }
       }
-      const docRes = await axios.get(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/employees/${linked_id}`, config);
+      const docRes = await axios.get(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/lookup/document-types`, config);
       if (docRes.status !== 200) {
           throw docRes.body;
       }
