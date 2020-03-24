@@ -173,13 +173,16 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         try {
             if (mappingFiles && mappingFiles.length !== 0) {
                 const csvTextFile = await fs.readFileAsync(mappingFiles[0].path, 'utf8');
-                console.log('CSV Text File', csvTextFile);
+                // console.log('CSV Text File', csvTextFile);
                 mappingObj = csvToObj(csvTextFile);
                 console.log('Mapping', mappingObj);
 
                 // Cleanup mapping file
                 fs.unlink(mappingFiles[0].path, (err) => {
-                    if (err) throw err;
+                    if (err) {
+                      console.log('There was a problem deleting the file', err);
+                      throw err;
+                    }
                 });
             }
 
