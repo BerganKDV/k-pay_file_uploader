@@ -128,7 +128,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             progressStorage[hash].errors.push({
                 file: file.originalname,
                 message: 'Bad File Data for file'
-            })
+            });
 
             // Cleanup file
             fs.unlink(file.path, (err) => {
@@ -194,15 +194,20 @@ app.post('/upload', upload.fields(fields), function (req, res) {
               }
           }
           const tokenRes = await axios.post('https://secure.saashr.com/ta/rest/v1/login', credentials, config);
-          console.log('Token Response', tokenRes);
+          console.log('Token Response', tokenRes.data);
           const tokenObj = tokenRes.data;
           const docTypeMap = await lookupDocTypes(tokenObj.token, req.body.company);
 
             // Create the array of configs
             const configs = [];
             let files = req.files['files-to-upload'];
+            console.log('Files', files);
             for (const fileObj of files) {
-                const rowIndex = mappingObj.map(rec => rec.file_name).indexOf(fileObj.originalname);
+              let rowIndex = mappingObj.map(rec => rec.file_name).indexOf(fileObj.originalname);
+              if (rowIndex === -1) {
+                const filenameWithoutExtension = fileObj.originalname.substring(0, fileObj.originalname.lastIndexOf('.'));
+                rowIndex = mappingObj.map(rec => rec.file_name).indexOf(filenameWithoutExtension);
+              }
                 if (rowIndex >= 0) {
                     const rec_id = mappingObj[rowIndex].system_id;
                     const documentName = mappingObj[rowIndex].document_type_name;
@@ -227,6 +232,12 @@ app.post('/upload', upload.fields(fields), function (req, res) {
                 filesProcessed: 0,
                 percentComplete: 0,
                 errors: []
+            }
+
+            if (configs.length === 0) {
+              progressStorage[hash].errors.push({
+                  message: 'No files match between mapping file and selected files'
+              })
             }
             for (const config of configs) {
                 await uploadToKpay(config, tokenObj);
