@@ -88,7 +88,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
         console.log('Upload Response', uploadRes.status);
 
-        // Otherwise upload to the document storage
+      // Otherwise upload to the document storage
       } else {
         console.log('Doc Object', docObj);
         const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
@@ -121,7 +121,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       increaseProgress();
 
       // Wait so you don't hit usage limits
-      // await wait(3800);
+      await wait(1000);
 
     } catch (err) {
       // console.error('Error', err);
@@ -193,7 +193,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
           'Content-Type': 'application/json',
           'Api-Key': req.body.api_key
         }
-      }
+      };
       const tokenRes = await axios.post('https://secure.saashr.com/ta/rest/v1/login', credentials, config);
       console.log('Token Response', tokenRes.data);
       const tokenObj = tokenRes.data;

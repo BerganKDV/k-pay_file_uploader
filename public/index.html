@@ -172,6 +172,12 @@
                                     alert('Error uploading the following files: \n' + JSON.stringify(progress.errors));
                                 }
                             }
+                            if (progress.errors) {
+                              for (error of progress.errors) {
+                                // document.getElementById('file_progress').append
+                                alert(error.message);
+                              }
+                            }
                         })
                     }, 2000);
                 }
