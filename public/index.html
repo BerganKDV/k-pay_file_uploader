@@ -2,210 +2,220 @@
 <html lang="en">
 
 <head>
-    <title>K-Pay File Uploader</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
-        crossorigin="anonymous">
-    <style>
-        @media (min-width: 1200px) {
-            .container {
-                max-width: 900px;
-            }
-        }
+  <title>K-Pay File Uploader</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <style>
+    @media (min-width: 1200px) {
+      .container {
+        max-width: 900px;
+      }
+    }
 
-        .progress {
-            transition: all .2s linear;
-            margin: 5px 0 10px 0;
-        }
+    .progress {
+      transition: all .2s linear;
+      margin: 5px 0 10px 0;
+    }
 
-        .hidden {
-            opacity: 0;
-            height: 0;
-            overflow: hidden;
-            transition-timing-function: linear, step-end;
-            margin: 0;
-        }
-    </style>
+    .hidden {
+      opacity: 0;
+      height: 0;
+      overflow: hidden;
+      transition-timing-function: linear, step-end;
+      margin: 0;
+    }
+
+    .error {
+      color: red;
+    }
+
+    p {
+      margin-bottom: 5px;
+    }
+  </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="header clearfix">
-            <nav>
-                <div class="container-fluid">
-                    <div class="navbar-header">
-                        <h3 class="text-muted">K-Pay File Uploader</h3>
-                    </div>
+  <div class="container">
+    <div class="header clearfix">
+      <nav>
+        <div class="container-fluid">
+          <div class="navbar-header">
+            <h3 class="text-muted">K-Pay File Uploader</h3>
+          </div>
+        </div>
+      </nav>
+    </div>
+    <div class="jumbotron">
+      <h1 style="font-size:50px">Upload Files To K-Pay Easily!</h1>
+      <p class="lead">Simply fill out your company shortname, api key, username and password and select the files to
+        upload. If you
+        wish for your files to be attached to a specific record, name the file as the System ID of that record (i.e.
+        "11898208.pdf"). Multiple files are support by holding command/control while selecting files.</p>
+      <p class="lead">
+        You may also upload a mapping file, which allows you to keep your file names the same and include more
+        information about
+        the uploaded files. To include a mapping file follow the instructions below:
+        <ol class="lead">
+          <li>Download the sample mapping csv file.</li>
+          <li>Put the name of the file that this line corresponds to in the first column.</li>
+          <li>Put the System ID of the record you wish to attach the file to in the "system_id" column. You can find
+            this by adding the System ID or Account ID fields to your record list in K-Pay.</li>
+          <li>(Optional) Include a "Document Type" in the document information in K-Pay by supplying a Document Type
+            Name in the "document_type_name" column. Note, the name must match exactly to the name in K-Pay.
+          <li>(Optional) Include a description that will be included in the document description in K-Pay.</li>
+          <li>(Optional) If your file is a photo that you wish to put in the employee photo field put a "Yes" in this
+            column. Note that if you put a "Yes" in this column the file will not be stored in the Document Storage
+            area of the employee but will only be visible in the photo area of the Account Demographics section.
+            As such the Document Type and Description columns will be ignored. Also note, I am not validating
+            or manipulating any files here so please make sure your file is a valid image and is formatted correctly
+            before uploading.</li>
+        </ol>
+      </p>
+      <div style="text-align: center;">
+        <img class="logo" width="90%" src="/images/csv_example.jpg" style="text-align: center; padding: 10px 0 30px">
+        <br>
+        <a href="/images/mapping.csv" download>
+          <button type="button" class="btn btn-success" onclick="submitFiles()">Download Sample CSV</button>
+        </a>
+      </div>
+
+    </div>
+    <div class="row marketing">
+      <div class="col-lg-12">
+        <form action="/upload" enctype="multipart/form-data" method="post" name="something" id="file-upload-form">
+          <div class="form-group">
+            <label for="company-short-name" class="col-3 col-form-label">Company Shortname</label>
+            <div class="col-10">
+              <input class="form-control" type="text" placeholder="ex: ABCCompany" id="company-short-name"
+                name="company">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="example-text-input" class="col-3 col-form-label">API Key</label>
+            <div class="col-10">
+              <input class="form-control" type="text" placeholder="ex: 8rnqvyatbwd6biouef47zb5xipmih8zw1" id="api_key"
+                name="api_key">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="example-text-input" class="col-3 col-form-label">Username</label>
+            <div class="col-10">
+              <input class="form-control" type="text" placeholder="ex: panderson" id="username" name="username">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="example-password-input" class="col-3 col-form-label">Password</label>
+            <div class="col-10">
+              <input class="form-control" type="password" placeholder="ex: password1" id="password" name="password">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="exampleSelect1" class="col-3 col-form-label">Document Type</label>
+            <div class="col-10">
+              <select class="form-control" id="exampleSelect1" name="document_type">
+                <option value="HR_EMPLOYEE_DOCUMENT">Employee Document</option>
+                <option value="COMPANY_DOCUMENT">Company Document</option>
+                <option value="TIMESHEET_DOCUMENT">Timsheet Document</option>
+                <option value="HR_APPLICANT_RESUME">Applicant Resume</option>
+                <option value="BENEFIT_REQUEST_DOCUMENT">Benefit Request Document</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="example-password-input" class="col-3 col-form-label">Mapping File Upload</label>
+            <div class="col-10">
+              <input type="file" name="mapping-file-to-upload">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="example-password-input" class="col-3 col-form-label">File Upload (max 1,000)</label>
+            <div class="col-10">
+              <input type="file" name="files-to-upload" multiple>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-10">
+              <div id="file_progress_container" class="progress hidden">
+                <div id="file_progress" class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
+                  role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+                  Starting...
                 </div>
-            </nav>
-        </div>
-        <div class="jumbotron">
-            <h1 style="font-size:50px">Upload Files To K-Pay Easily!</h1>
-            <p class="lead">Simply fill out your company shortname, api key, username and password and select the files to upload. If you
-                wish for your files to be attached to a specific record, name the file as the System ID of that record (i.e.
-                "11898208.pdf"). Multiple files are support by holding command/control while selecting files.</p>
-            <p class="lead">
-                You may also upload a mapping file, which allows you to keep your file names the same and include more information about
-                the uploaded files. To include a mapping file follow the instructions below:
-                <ol class="lead">
-                    <li>Download the sample mapping csv file.</li>
-                    <li>Put the name of the file that this line corresponds to in the first column.</li>
-                    <li>Put the System ID of the record you wish to attach the file to in the "system_id" column. You can find
-                        this by adding the System ID or Account ID fields to your record list in K-Pay.</li>
-                    <li>(Optional) Include a "Document Type" in the document information in K-Pay by supplying a Document Type
-                        Name in the "document_type_name" column. Note, the name must match exactly to the name in K-Pay.
-                    <li>(Optional) Include a description that will be included in the document description in K-Pay.</li>
-                    <li>(Optional) If your file is a photo that you wish to put in the employee photo field put a "Yes" in this
-                        column. Note that if you put a "Yes" in this column the file will not be stored in the Document Storage
-                        area of the employee but will only be visible in the photo area of the Account Demographics section.
-                        As such the Document Type and Description columns will be ignored. Also note, I am not validating
-                        or manipulating any files here so please make sure your file is a valid image and is formatted correctly
-                        before uploading.</li>
-                </ol>
-            </p>
-            <div style="text-align: center;">
-                <img class="logo" width="90%" src="/images/csv_example.jpg" style="text-align: center; padding: 10px 0 30px">
-                <br>
-                <a href="/images/mapping.csv" download>
-                    <button type="button" class="btn btn-success" onclick="submitFiles()">Download Sample CSV</button>
-                </a>
+              </div>
+              <div id="file_progress_errors" class="">
+              </div>
             </div>
-
-        </div>
-        <div class="row marketing">
-            <div class="col-lg-12">
-                <form action="/upload" enctype="multipart/form-data" method="post" name="something" id="file-upload-form">
-                    <div class="form-group">
-                        <label for="company-short-name" class="col-3 col-form-label">Company Shortname</label>
-                        <div class="col-10">
-                            <input class="form-control" type="text" placeholder="ex: ABCCompany" id="company-short-name" name="company">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="example-text-input" class="col-3 col-form-label">API Key</label>
-                        <div class="col-10">
-                            <input class="form-control" type="text" placeholder="ex: 8rnqvyatbwd6biouef47zb5xipmih8zw1" id="api_key" name="api_key">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="example-text-input" class="col-3 col-form-label">Username</label>
-                        <div class="col-10">
-                            <input class="form-control" type="text" placeholder="ex: panderson" id="username" name="username">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="example-password-input" class="col-3 col-form-label">Password</label>
-                        <div class="col-10">
-                            <input class="form-control" type="password" placeholder="ex: password1" id="password" name="password">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="exampleSelect1" class="col-3 col-form-label">Document Type</label>
-                        <div class="col-10">
-                            <select class="form-control" id="exampleSelect1" name="document_type">
-                                <option value="HR_EMPLOYEE_DOCUMENT">Employee Document</option>
-                                <option value="COMPANY_DOCUMENT">Company Document</option>
-                                <option value="TIMESHEET_DOCUMENT">Timsheet Document</option>
-                                <option value="HR_APPLICANT_RESUME">Applicant Resume</option>
-                                <option value="BENEFIT_REQUEST_DOCUMENT">Benefit Request Document</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="example-password-input" class="col-3 col-form-label">Mapping File Upload</label>
-                        <div class="col-10">
-                            <input type="file" name="mapping-file-to-upload">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="example-password-input" class="col-3 col-form-label">File Upload (max 1,000)</label>
-                        <div class="col-10">
-                            <input type="file" name="files-to-upload" multiple>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <div class="col-10">
-                            <div id="file_progress_container" class="progress hidden">
-                                <div id="file_progress" class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" aria-valuenow="100"
-                                    aria-valuemin="0" aria-valuemax="100" style="width: 100%">
-                                    Starting...
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <div class="col-10">
-                            <button type="button" class="btn btn-primary" onclick="submitFiles()">Submit</button>
-                        </div>
-                    </div>
-                </form>
+          </div>
+          <div class="form-group">
+            <div class="col-10">
+              <button type="button" class="btn btn-primary" onclick="submitFiles()">Submit</button>
             </div>
-        </div>
-        <footer class="footer" style="padding-top: 25px;">
-            <p>&copy; 2018 BerganKDV</p>
-        </footer>
-        <script>
-            function submitFiles() {
+          </div>
+        </form>
+      </div>
+    </div>
+    <footer class="footer" style="padding-top: 25px;">
+      <p>&copy; 2018 BerganKDV</p>
+    </footer>
+    <script>
+      function submitFiles() {
 
-                // Check progress function
-                function checkProgress() {
-                    const url = '/progress?hash=' + sessionStorage.getItem('job_hash');
-                    console.log('URL', url);
-                    var interval = setInterval(function () {
-                        fetch(url).then(function (res) {
-                            return res.json();
-                        }).then((progress) => {
-                            current_progress = +progress.percentComplete;
-                            if (current_progress > 0) {
-                                console.log('Current Progress', current_progress);
-                                document.getElementById('file_progress').className = 'progress-bar progress-bar-striped progress-bar-animated bg-info';
-                                document.getElementById('file_progress').style.width = current_progress + '%';
-                                document.getElementById('file_progress').setAttribute('aria-valuenow', current_progress);
-                                document.getElementById('file_progress').textContent = current_progress + '% (' + progress.filesProcessed + '/' + progress.totalFiles + ')';
-                            }
-                            if (current_progress >= 100) {
-                                document.getElementById('file_progress').className = 'progress-bar bg-success';
-                                console.log('Finished');
-                                clearInterval(interval);
-                                if (progress.errors.length > 0) {
-                                    alert('Error uploading the following files: \n' + JSON.stringify(progress.errors));
-                                }
-                            }
-                            if (progress.errors) {
-                              for (error of progress.errors) {
-                                // document.getElementById('file_progress').append
-                                alert(error.message);
-                              }
-                            }
-                        })
-                    }, 2000);
+        // Check progress function
+        function checkProgress() {
+          const url = '/progress?hash=' + sessionStorage.getItem('job_hash');
+          console.log('URL', url);
+          var interval = setInterval(function () {
+            fetch(url).then(function (res) {
+              return res.json();
+            }).then((progress) => {
+              current_progress = +progress.percentComplete;
+              if (current_progress > 0) {
+                console.log('Current Progress', current_progress);
+                document.getElementById('file_progress').className = 'progress-bar progress-bar-striped progress-bar-animated bg-info';
+                document.getElementById('file_progress').style.width = current_progress + '%';
+                document.getElementById('file_progress').setAttribute('aria-valuenow', current_progress);
+                document.getElementById('file_progress').textContent = current_progress + '% (' + progress.filesProcessed + '/' + progress.totalFiles + ')';
+              }
+              if (current_progress >= 100) {
+                document.getElementById('file_progress').className = 'progress-bar bg-success';
+                console.log('Finished');
+                clearInterval(interval);
+              }
+              if (progress.errors.length > 0) {
+                for (error of progress.errors) {
+                  document.getElementById('file_progress_errors').innerHTML += `<p class="error">${error.message}</p>`;
                 }
+              }
+            })
+          }, 2000);
+        }
 
-                // Reveal the progress bar and set styles
-                document.getElementById('file_progress_container').className = 'progress';
-                document.getElementById('file_progress').className = 'progress-bar progress-bar-striped progress-bar-animated bg-warning';
-                document.getElementById('file_progress').textContent = 'Starting...';
+        // Reveal the progress bar and set styles
+        document.getElementById('file_progress_container').className = 'progress';
+        document.getElementById('file_progress').className = 'progress-bar progress-bar-striped progress-bar-animated bg-warning';
+        document.getElementById('file_progress').textContent = 'Starting...';
 
-                // Upload form data
-                var formData = new FormData(document.getElementById('file-upload-form'));
-                fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                }).then(function (res) {
-                    return res.json();
-                }).then(function (body) {
-                    console.log('Response', body);
-                    if (body.status === 'success') {
-                        sessionStorage.setItem('job_hash', body.message);
-                        checkProgress();
-                    } else {
-                        document.getElementById('file_progress_container').style.color = 'red';
-                        document.getElementById('file_progress_container').innerHTML = '&nbsp' + body.message;
-                    }
-                });
-            }
-        </script>
+        // Upload form data
+        var formData = new FormData(document.getElementById('file-upload-form'));
+        fetch('/upload', {
+          method: 'POST',
+          body: formData
+        }).then(function (res) {
+          return res.json();
+        }).then(function (body) {
+          console.log('Response', body);
+          if (body.status === 'success') {
+            sessionStorage.setItem('job_hash', body.message);
+            checkProgress();
+          } else {
+            document.getElementById('file_progress_container').style.color = 'red';
+            document.getElementById('file_progress_container').innerHTML = '&nbsp' + body.message;
+          }
+        });
+      }
+    </script>
 </body>
 
 </html>

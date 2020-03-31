@@ -41,17 +41,17 @@ const fields = [
 ];
 app.post('/upload', upload.fields(fields), function (req, res) {
 
+  function increaseProgress() {
+    progressStorage[hash].filesProcessed += 1;
+    const percentComplete = Math.round((progressStorage[hash].filesProcessed / progressStorage[hash].totalFiles) * 1000) / 10;
+    progressStorage[hash].percentComplete = percentComplete;
+    console.log('Progress', progressStorage[hash]);
+  }
+
   // Upload to K-Pay helper func
   async function uploadToKpay(config, tokenObj) {
     console.log('Config', config);
     const { company, type, file, rec_id, document_type, description, employee_photo } = config;
-
-    function increaseProgress() {
-      progressStorage[hash].filesProcessed += 1;
-      const percentComplete = Math.round((progressStorage[hash].filesProcessed / progressStorage[hash].totalFiles) * 1000) / 10;
-      progressStorage[hash].percentComplete = percentComplete;
-      console.log('Progress', progressStorage[hash]);
-    }
 
     function wait(x) {
       return new Promise(resolve => setTimeout(resolve, x));
@@ -87,12 +87,14 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         const buffer = await fs.readFileAsync(file.path);
         const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
         console.log('Upload Response', uploadRes.status);
+        console.log('Upload headers', uploadRes.headers);
 
-      // Otherwise upload to the document storage
+        // Otherwise upload to the document storage
       } else {
         console.log('Doc Object', docObj);
         const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
         console.log('Document Response', docRes.headers.location);
+        console.log('Document Response headers', uploadRes.headers);
         if (docRes.status !== 201) {
           console.log('Error Body', docRes.body);
           throw docRes.body;
@@ -199,9 +201,16 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       const tokenObj = tokenRes.data;
       const docTypeMap = await lookupDocTypes(tokenObj.token, req.body.company);
 
+
       // Create the array of configs
       const configs = [];
       let files = req.files['files-to-upload'];
+      progressStorage[hash] = {
+        totalFiles: files.length,
+        filesProcessed: 0,
+        percentComplete: 0,
+        errors: []
+      }
       console.log('Files', files);
       for (const fileObj of files) {
         let rowIndex = mappingObj.map(rec => rec.file_name).indexOf(fileObj.originalname);
@@ -225,14 +234,10 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             employee_photo,
             file: fileObj
           });
+        } else {
+          progressStorage[hash].errors.push({ message: `"${fileObj.originalname}" has no match in the mapping file.` });
+          increaseProgress();
         }
-      }
-
-      progressStorage[hash] = {
-        totalFiles: files.length,
-        filesProcessed: 0,
-        percentComplete: 0,
-        errors: []
       }
 
       if (configs.length === 0) {
@@ -285,7 +290,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         // uploadPromiseArr.push(uploadPromiseGenerator(i));
         uploadPromiseArr.push(uploadToKpay(configs[i], tokenObj));
 
-        if ((i !== 0 && i % 1 === 0) || i === EHKeys.length - 1) { // Can't go higher than one otherwise you get anomolies
+        if ((i !== 0 && i % 1 === 0) || i === configs.length - 1) { // Can't go higher than one otherwise you get anomolies
           await Promise.all(uploadPromiseArr);
           uploadPromiseArr = [];
         }
