@@ -403,7 +403,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
 
 app.get('/progress', (req, res) => {
   const hash = req.query.hash;
-  console.log('Progress', `Processed: ${progressStorage[hash].filesProcessed}, Total: ${progressStorage[hash].totalFiles}`);
+  console.log('Progress', `Processed: ${progressStorage[hash].filesProcessed}, Total: ${progressStorage[hash].totalFiles}, Total: ${progressStorage[hash].percentComplete}`);
   res.send(progressStorage[hash]);
 });
 
