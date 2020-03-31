@@ -126,7 +126,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       await wait(1000);
 
     } catch (err) {
-      // console.error('Error', err);
+      console.error('Error', err);
       increaseProgress();
       progressStorage[hash].errors.push({
         file: file.originalname,
@@ -235,12 +235,14 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             file: fileObj
           });
         } else {
+          console.error(`"${fileObj.originalname}" has no match in the mapping file.`);
           progressStorage[hash].errors.push({ message: `"${fileObj.originalname}" has no match in the mapping file.` });
           increaseProgress();
         }
       }
 
       if (configs.length === 0) {
+        console.error('No files match between mapping file and selected files');
         progressStorage[hash].errors.push({
           message: 'No files match between mapping file and selected files'
         })
@@ -374,8 +376,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
 
 app.get('/progress', (req, res) => {
   const hash = req.query.hash;
-  console.log('Hash', hash);
-  console.log('Progress', progressStorage[hash]);
+  console.log('Progress', `Total: ${progressStorage[hash].totalFiles}, Processed: ${progressStorage[hash].filesProcessed}`);
   res.send(progressStorage[hash]);
 });
 
