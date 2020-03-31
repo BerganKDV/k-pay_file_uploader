@@ -185,7 +185,7 @@
               }
               if (progress.errors.length > 0) {
                 for (error of progress.errors) {
-                  document.getElementById('file_progress_errors').innerHTML += `<p class="error">${error.message}</p>`;
+                  document.getElementById('file_progress_errors').innerHTML += `<p class="error">${error.file ? error.file + ' : ' : ''}${error.message}</p>`;
                 }
               }
             })
