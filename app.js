@@ -171,7 +171,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
   }
 
-  function stripBOM() {
+  function stripBOM(string) {
     if (typeof string !== 'string') {
       throw new TypeError(`Expected a string, got ${typeof string}`);
     }
