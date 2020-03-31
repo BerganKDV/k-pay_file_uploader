@@ -3,6 +3,7 @@ const multer = require('multer');
 const axios = require('axios');
 const auth = require('basic-auth');
 const fs = require('fs');
+const papa = require('papaparse');
 const tempFolder = process.env.NODE_ENV === 'Production' ? '/tmp' : './tmp';
 const upload = multer({ dest: tempFolder });
 const { promisify } = require('util');
@@ -142,23 +143,23 @@ app.post('/upload', upload.fields(fields), function (req, res) {
   }
 
   // Convert CSV To Object Helper Func
-  function csvToObj(csv) {
-    csv = csv.replace(/\r/g, '');
-    csv = csv.replace(/^\uFEFF/, '');
-    const lines = csv.split('\n');
-    const result = [];
-    const headers = lines[0].split(',');
+  // function csvToObj(csv) {
+  //   csv = csv.replace(/\r/g, '');
+  //   csv = csv.replace(/^\uFEFF/, '');
+  //   const lines = csv.split('\n');
+  //   const result = [];
+  //   const headers = lines[0].split(',');
 
-    for (let i = 1; i < lines.length; i++) {
-      const obj = {};
-      const currentline = lines[i].split(',');
-      for (var j = 0; j < headers.length; j++) {
-        obj[headers[j]] = currentline[j];
-      }
-      result.push(obj);
-    }
-    return result;
-  }
+  //   for (let i = 1; i < lines.length; i++) {
+  //     const obj = {};
+  //     const currentline = lines[i].split(',');
+  //     for (var j = 0; j < headers.length; j++) {
+  //       obj[headers[j]] = currentline[j];
+  //     }
+  //     result.push(obj);
+  //   }
+  //   return result;
+  // }
 
   // Create unique hash helper function
   function generateHash() {
@@ -177,7 +178,8 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       if (mappingFiles && mappingFiles.length !== 0) {
         const csvTextFile = await fs.readFileAsync(mappingFiles[0].path, 'utf8');
         // console.log('CSV Text File', csvTextFile);
-        mappingObj = csvToObj(csvTextFile);
+        // mappingObj = csvToObj(csvTextFile);
+        mappingObj = papa.parse(csvTextFile, { header: true }).data;
         console.log('Mapping', mappingObj);
 
         // Cleanup mapping file
