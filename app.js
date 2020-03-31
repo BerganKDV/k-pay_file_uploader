@@ -56,8 +56,8 @@ app.post('/upload', upload.fields(fields), function (req, res) {
   async function assessCallLimit(headers) {
     const callLimit = headers['x-calllimit-threshold'];
     const currentCalls = headers['x-calllimit-currentcalls'];
-    const currentCalls = headers['x-callLimit-timetowait'];
-    console.log('Call Threshholds', `Current Calls: ${currentCalls}, Limit: ${callLimit}, Wait Time: ${currentCalls}`);
+    const timeToWait = headers['x-callLimit-timetowait'];
+    console.log('Call Threshholds', `Current Calls: ${currentCalls}, Limit: ${callLimit}, Wait Time: ${timeToWait}`);
     if (callLimit && currentCalls) {
       if ((Number(callLimit) - 10) < Number(currentCalls)) { // 10 for a little buffer
         await wait(30000);
