@@ -171,14 +171,29 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
   }
 
+  function stripBOM() {
+    if (typeof string !== 'string') {
+      throw new TypeError(`Expected a string, got ${typeof string}`);
+    }
+
+    // Catches EFBBBF (UTF-8 BOM) because the buffer-to-string
+    // conversion translates it to FEFF (UTF-16 BOM)
+    if (string.charCodeAt(0) === 0xFEFF) {
+      return string.slice(1);
+    }
+
+    return string;
+  }
+
   // Asyncronously process files
   async function processFiles() {
     let mappingObj = [];
     try {
       if (mappingFiles && mappingFiles.length !== 0) {
-        const csvTextFile = await fs.readFileAsync(mappingFiles[0].path, 'utf8');
+        let csvTextFile = await fs.readFileAsync(mappingFiles[0].path, 'utf8');
         // console.log('CSV Text File', csvTextFile);
-        // mappingObj = csvToObj(csvTextFile);
+        csvTextFile = stripBOM(csvTextFile);
+
         mappingObj = papa.parse(csvTextFile, { header: true }).data;
         console.log('Mapping', mappingObj);
 
@@ -337,8 +352,8 @@ app.post('/upload', upload.fields(fields), function (req, res) {
 
   // ============================================ MAIN ==============================================
 
-  console.log('File', req.files);
-  console.log('Text', req.body);
+  // console.log('File', req.files);
+  // console.log('Text', req.body);
   const mappingFiles = req.files['mapping-file-to-upload'];
   // console.log('Mapping File', mappingFiles);
 
