@@ -88,13 +88,22 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         const buffer = await fs.readFileAsync(file.path);
         const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
         console.log('Upload Response', uploadRes.status);
-        console.log('Upload headers', uploadRes.headers);
+        // console.log('Upload headers', uploadRes.headers);
+
+        // Set some timeout if getting close to the limit
+        const callLimit = uploadRes.headers['x-calllimit-threshold'];
+        const currentCalls = uploadRes.headers['x-calllimit-currentcalls'];
+        if (callLimit && currentCalls) {
+          if ((Number(callLimit) - 10) < Number(currentCalls)) { // 10 for a little buffer
+            await wait(30000);
+          }
+        }
 
         // Otherwise upload to the document storage
       } else {
         console.log('Doc Object', docObj);
         const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
-        console.log('Document Response', docRes.headers.location);
+        // console.log('Document Response', docRes.headers.location);
         console.log('Document Response headers', docRes.headers);
         if (docRes.status !== 201) {
           console.log('Error Body', docRes.body);
@@ -124,7 +133,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       increaseProgress();
 
       // Wait so you don't hit usage limits
-      await wait(1000);
+      // await wait(1000);
 
     } catch (err) {
       console.error('Error', err);
@@ -194,7 +203,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         // console.log('CSV Text File', csvTextFile);
         csvTextFile = stripBOM(csvTextFile);
 
-        mappingObj = papa.parse(csvTextFile, { header: true }).data;
+        mappingObj = papa.parse(csvTextFile, { header: true, skipEmptyLines: true }).data;
         console.log('Mapping', mappingObj);
 
         // Cleanup mapping file
@@ -309,7 +318,8 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         // uploadPromiseArr.push(uploadPromiseGenerator(i));
         uploadPromiseArr.push(uploadToKpay(configs[i], tokenObj));
 
-        if ((i !== 0 && i % 1 === 0) || i === configs.length - 1) { // Can't go higher than one otherwise you get anomolies
+        const concurrentJobs = 2; // Don't go to high otherwise you get anomolies
+        if ((i !== 0 && i % concurrentJobs === 0) || i === configs.length - 1) {
           await Promise.all(uploadPromiseArr);
           uploadPromiseArr = [];
         }
