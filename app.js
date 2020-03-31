@@ -45,7 +45,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     progressStorage[hash].filesProcessed += 1;
     const percentComplete = Math.round((progressStorage[hash].filesProcessed / progressStorage[hash].totalFiles) * 1000) / 10;
     progressStorage[hash].percentComplete = percentComplete;
-    console.log('Progress', progressStorage[hash]);
+    // console.log('Progress', progressStorage[hash]);
   }
 
   // Upload to K-Pay helper func
@@ -94,7 +94,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         console.log('Doc Object', docObj);
         const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
         console.log('Document Response', docRes.headers.location);
-        console.log('Document Response headers', uploadRes.headers);
+        console.log('Document Response headers', docRes.headers);
         if (docRes.status !== 201) {
           console.log('Error Body', docRes.body);
           throw docRes.body;
@@ -376,7 +376,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
 
 app.get('/progress', (req, res) => {
   const hash = req.query.hash;
-  console.log('Progress', `Total: ${progressStorage[hash].totalFiles}, Processed: ${progressStorage[hash].filesProcessed}`);
+  console.log('Progress', `Processed: ${progressStorage[hash].filesProcessed}, Total: ${progressStorage[hash].totalFiles}`);
   res.send(progressStorage[hash]);
 });
 
