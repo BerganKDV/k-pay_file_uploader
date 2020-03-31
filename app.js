@@ -49,14 +49,26 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     // console.log('Progress', progressStorage[hash]);
   }
 
+  function wait(x) {
+    return new Promise(resolve => setTimeout(resolve, x));
+  }
+
+  async function assessCallLimit(headers) {
+    const callLimit = headers['x-calllimit-threshold'];
+    const currentCalls = headers['x-calllimit-currentcalls'];
+    const currentCalls = headers['x-callLimit-timetowait'];
+    console.log('Call Threshholds', `Current Calls: ${currentCalls}, Limit: ${callLimit}, Wait Time: ${currentCalls}`);
+    if (callLimit && currentCalls) {
+      if ((Number(callLimit) - 10) < Number(currentCalls)) { // 10 for a little buffer
+        await wait(30000);
+      }
+    }
+  }
+
   // Upload to K-Pay helper func
   async function uploadToKpay(config, tokenObj) {
     console.log('Config', config);
     const { company, type, file, rec_id, document_type, description, employee_photo } = config;
-
-    function wait(x) {
-      return new Promise(resolve => setTimeout(resolve, x));
-    }
 
     try {
       let linked_id = rec_id ? rec_id : file.originalname.substring(0, file.originalname.lastIndexOf('.'));
@@ -87,17 +99,11 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         const ticketUrl = docRes.data.photo_href;
         const buffer = await fs.readFileAsync(file.path);
         const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
-        console.log('Upload Response', uploadRes.status);
+        console.log('Emp Photo Upload Response', uploadRes.status);
         // console.log('Upload headers', uploadRes.headers);
 
         // Set some timeout if getting close to the limit
-        const callLimit = uploadRes.headers['x-calllimit-threshold'];
-        const currentCalls = uploadRes.headers['x-calllimit-currentcalls'];
-        if (callLimit && currentCalls) {
-          if ((Number(callLimit) - 10) < Number(currentCalls)) { // 10 for a little buffer
-            await wait(30000);
-          }
-        }
+        assessCallLimit(uploadRes.headers);
 
         // Otherwise upload to the document storage
       } else {
@@ -121,7 +127,9 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         const buffer = await fs.readFileAsync(file.path);
         const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
         console.log('Upload Response', uploadRes.status);
-        console.log('Upload headers', uploadRes.headers);
+
+        // Set some timeout if getting close to the limit
+        assessCallLimit(uploadRes.headers);
       }
 
       // Cleanup file
