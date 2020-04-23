@@ -105,8 +105,10 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         // Set some timeout if getting close to the limit
         await assessCallLimit(uploadRes.headers);
 
-        // Otherwise upload to the document storage
+      // Otherwise upload to the document storage
       } else {
+
+        // Creat the document
         console.log('Doc Object', docObj);
         const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
         // console.log('Document Response', docRes.headers.location);
@@ -116,6 +118,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
           throw docRes.body;
         }
 
+        // Get the writable link for the document
         const location = docRes.headers.location;
         const ticketRes = await axios.get(location, config);
         console.log('Ticket Response headers', ticketRes.headers);
@@ -123,6 +126,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
           throw file.originalname
         }
 
+        // Write the document
         const ticketUrl = ticketRes.data._links.content_rw;
         const buffer = await fs.readFileAsync(file.path);
         const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
