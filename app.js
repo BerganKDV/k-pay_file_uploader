@@ -103,14 +103,14 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         // console.log('Upload headers', uploadRes.headers);
 
         // Set some timeout if getting close to the limit
-        assessCallLimit(uploadRes.headers);
+        await assessCallLimit(uploadRes.headers);
 
         // Otherwise upload to the document storage
       } else {
         console.log('Doc Object', docObj);
         const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
         // console.log('Document Response', docRes.headers.location);
-        console.log('Document Response headers', docRes.headers);
+        // console.log('Document Response headers', docRes.headers);
         if (docRes.status !== 201) {
           console.log('Error Body', docRes.body);
           throw docRes.body;
@@ -118,7 +118,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
 
         const location = docRes.headers.location;
         const ticketRes = await axios.get(location, config);
-        // console.log('Ticket Response', ticketRes.data);
+        console.log('Ticket Response headers', ticketRes.headers);
         if (ticketRes.status !== 200) {
           throw file.originalname
         }
@@ -126,10 +126,11 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         const ticketUrl = ticketRes.data._links.content_rw;
         const buffer = await fs.readFileAsync(file.path);
         const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
-        console.log('Upload Response', uploadRes.status);
+        console.log('Upload Response Status', uploadRes.status);
+        console.log('Upload Response Headers', uploadRes.headers); // Checking to see if these have the call threshhold data
 
         // Set some timeout if getting close to the limit
-        assessCallLimit(uploadRes.headers);
+        await assessCallLimit(docRes.headers);
       }
 
       // Cleanup file
@@ -158,25 +159,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       await wait(3800);
     }
   }
-
-  // Convert CSV To Object Helper Func
-  // function csvToObj(csv) {
-  //   csv = csv.replace(/\r/g, '');
-  //   csv = csv.replace(/^\uFEFF/, '');
-  //   const lines = csv.split('\n');
-  //   const result = [];
-  //   const headers = lines[0].split(',');
-
-  //   for (let i = 1; i < lines.length; i++) {
-  //     const obj = {};
-  //     const currentline = lines[i].split(',');
-  //     for (var j = 0; j < headers.length; j++) {
-  //       obj[headers[j]] = currentline[j];
-  //     }
-  //     result.push(obj);
-  //   }
-  //   return result;
-  // }
 
   // Create unique hash helper function
   function generateHash() {
@@ -282,37 +264,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         })
       }
 
-      // const uploadPromiseGenerator = (i: number): Promise<void> => {
-      //   return new Promise(async (resolve, reject) => {
-      //     const key = EHKeys[i];
-      //     const employee = groupedEH[key];
-      //     try {
-      //       // console.log('EINs', this.eins);
-      //       // console.log('File EIN', employee[0].EIN);
-      //       const einObj = this.eins[employee[0].EIN];
-      //       const nameObj = { first: employee[0]['First Name'], last: employee[0]['Last Name'] };
-      //       let kpayId = await this.lookupEmployeeId(employee[0].SSN, 'ssn', einObj, nameObj, employee[0]['Store - CC1'], 'EH');
-      //       if (!kpayId) {
-      //         kpayId = await this.retryEmployeeLookup(employee[0].SSN, 'ssn', einObj, nameObj, employee[0]['Store - CC1'], 'EH', 'upload pay statement for employee');
-      //       }
-      //       console.log('KPay ID', kpayId);
-      //       if (kpayId && batches) {
-      //         await this.uploadPayStatements(kpayId, employee, batches, payrollList, payrollEndDate);
-      //       } else {
-      //         this.jobStats.EH.failed++;
-      //       }
-      //     } catch (err) {
-      //       console.error('There was a problem uploading EH files', err);
-      //       this.log('EH', 'critical', 'There was a problem uploading EH files', err.toString());
-      //     }
-      //     this.jobState.EH.progress.processed++;
-      //     if ((i !== 0 && i % Math.round(EHKeys.length / 7.5) === 0) || i === EHKeys.length - 1) {
-      //       this.updateProgress('EH');
-      //     }
-      //     resolve();
-      //   });
-      // };
-
       let uploadPromiseArr = [];
       for (let i = 0; i < configs.length; i++) {
 
@@ -332,16 +283,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
           uploadPromiseArr = [];
         }
       }
-
-      // for (const config of configs) {
-      //   if (Date.now() >= (tokenObj.expiration - 60000)) {
-      //     console.log('Refreshing token');
-      //     const tokenRes = await axios.post('https://secure.saashr.com/ta/rest/v1/login', credentials, config);
-      //     console.log('Token Response', tokenRes.data);
-      //     tokenObj = tokenRes.data;
-      //   }
-      //   await uploadToKpay(config, tokenObj);
-      // }
     } catch (err) {
       console.log('Error', err);
     }
