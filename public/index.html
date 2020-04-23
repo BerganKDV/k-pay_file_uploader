@@ -170,6 +170,11 @@
             fetch(url).then(function (res) {
               return res.json();
             }).then((progress) => {
+              if (progress.errors.length > 0) {
+                for (error of progress.errors) {
+                  document.getElementById('file_progress_errors').innerHTML += `<p class="error">${error.file ? error.file + ' : ' : ''}${error.message}</p>`;
+                }
+              }
               current_progress = +progress.percentComplete;
               if (current_progress > 0) {
                 console.log('Current Progress', current_progress);
@@ -181,12 +186,10 @@
               if (current_progress >= 100) {
                 document.getElementById('file_progress').className = 'progress-bar bg-success';
                 console.log('Finished');
-                clearInterval(interval);
-              }
-              if (progress.errors.length > 0) {
-                for (error of progress.errors) {
-                  document.getElementById('file_progress_errors').innerHTML += `<p class="error">${error.file ? error.file + ' : ' : ''}${error.message}</p>`;
+                if (progress.fileErrors > 0) {
+                  alert(`Upload has finished but ${progress.fileErrors} file failed to upload. See the error messages and try uploading the failures again.`);
                 }
+                clearInterval(interval);
               }
             })
           }, 2000);

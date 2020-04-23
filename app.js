@@ -108,7 +108,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       // Otherwise upload to the document storage
       } else {
 
-        // Creat the document
+        // Create the document
         console.log('Doc Object', docObj);
         const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
         // console.log('Document Response', docRes.headers.location);
@@ -149,12 +149,24 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       // await wait(1000);
 
     } catch (err) {
-      console.error('Error', err);
+      console.error('Error Response', err.response);
+      let message = `There was a problem with the mapping data.`;
+      if (err.response && err.response.data) {
+        const data = err.response.data;
+        let errors;
+        if (data.errors) {
+          errors = data.errors.map((err) => err.message).join(' ');
+          if (errors.indexOf(`'Linked Object' not found`) >= 0 && type === 'HR_EMPLOYEE_DOCUMENT') {
+            errors = `Employee not found, please check that "${rec_id}" is the correct Account Id.`
+          }
+        } else {
+          errors = data;
+        }
+        message = errors;
+      }
       increaseProgress();
-      progressStorage[hash].errors.push({
-        file: file.originalname,
-        message: 'Bad File Data for file'
-      });
+      progressStorage[hash].fileErrors += 1;
+      progressStorage[hash].errors.push({ file: file.originalname, message });
 
       // Cleanup file
       fs.unlink(file.path, (err) => {
@@ -229,6 +241,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         totalFiles: files.length,
         filesProcessed: 0,
         percentComplete: 0,
+        fileErrors: 0,
         errors: []
       }
       console.log('Files', files);
@@ -356,6 +369,10 @@ app.post('/upload', upload.fields(fields), function (req, res) {
 
 app.get('/progress', (req, res) => {
   const hash = req.query.hash;
+  if (!progressStorage[hash]) {
+    res.end();
+    return;
+  }
   console.log('Progress', `Processed: ${progressStorage[hash].filesProcessed}, Total: ${progressStorage[hash].totalFiles}, Total: ${progressStorage[hash].percentComplete}`);
   res.send(progressStorage[hash]);
 });
