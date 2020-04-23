@@ -149,7 +149,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       // await wait(1000);
 
     } catch (err) {
-      console.error('Error Response', err.response);
+      console.error('Error Response', err.response && err.response.data ? err.response.data : err.response);
       let message = `There was a problem with the mapping data.`;
       if (err.response && err.response.data) {
         const data = err.response.data;
