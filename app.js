@@ -67,8 +67,8 @@ app.post('/upload', upload.fields(fields), function (req, res) {
 
   // Upload to K-Pay helper func
   async function uploadToKpay(config, tokenObj) {
-    console.log('Config', config);
     const { company, type, file, rec_id, document_type, description, employee_photo } = config;
+    console.log('Config', JSON.stringify({ company, type, file, rec_id, document_type, description, employee_photo }));
 
     try {
       let linked_id = rec_id ? rec_id : file.originalname.substring(0, file.originalname.lastIndexOf('.'));
@@ -109,10 +109,9 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       } else {
 
         // Create the document
-        console.log('Doc Object', docObj);
+        console.log('Doc Object', JSON.stringify(docObj));
         const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
         // console.log('Document Response', docRes.headers.location);
-        // console.log('Document Response headers', docRes.headers);
         if (docRes.status !== 201) {
           console.log('Error Body', docRes.body);
           throw docRes.body;
@@ -121,7 +120,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         // Get the writable link for the document
         const location = docRes.headers.location;
         const ticketRes = await axios.get(location, config);
-        console.log('Ticket Response headers', ticketRes.headers);
         if (ticketRes.status !== 200) {
           throw file.originalname
         }
@@ -130,11 +128,9 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         const ticketUrl = ticketRes.data._links.content_rw;
         const buffer = await fs.readFileAsync(file.path);
         const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
-        console.log('Upload Response Status', uploadRes.status);
-        console.log('Upload Response Headers', uploadRes.headers); // Checking to see if these have the call threshhold data
 
         // Set some timeout if getting close to the limit
-        await assessCallLimit(docRes.headers);
+        await assessCallLimit(ticketRes.headers); // Can also use docRes.headers
       }
 
       // Cleanup file
@@ -149,7 +145,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       // await wait(1000);
 
     } catch (err) {
-      console.error('Error Response', err.response && err.response.data ? err.response.data : err.response);
+      console.error('Error Response', err.response && err.response.data ? err.response.data : err.response ? err.response : err);
       let message = `There was a problem with the mapping data.`;
       if (err.response && err.response.data) {
         const data = err.response.data;
@@ -229,7 +225,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         }
       };
       const tokenRes = await axios.post('https://secure.saashr.com/ta/rest/v1/login', credentials, config);
-      console.log('Token Response', tokenRes.data);
+      // console.log('Token Response', tokenRes.data);
       const tokenObj = tokenRes.data;
       const docTypeMap = await lookupDocTypes(tokenObj.token, req.body.company);
 
@@ -317,7 +313,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     if (docRes.status !== 200) {
       throw docRes.body;
     }
-    console.log('Doc Type Response', docRes.data);
+    // console.log('Doc Type Response', docRes.data);
     const docTypeArr = docRes.data.items;
     const docTypeMap = docTypeArr.reduce(function (acc, docType) {
       acc[docType.display_name] = docType.id;
