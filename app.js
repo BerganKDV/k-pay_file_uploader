@@ -290,7 +290,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         // uploadPromiseArr.push(uploadPromiseGenerator(i));
         uploadPromiseArr.push(uploadToKpay(configs[i], tokenObj));
 
-        const concurrentJobs = 2; // Don't go to high otherwise you get anomolies
+        const concurrentJobs = 1; // Don't go to high otherwise you get anomolies
         if ((i !== 0 && i % concurrentJobs === 0) || i === configs.length - 1) {
           await Promise.all(uploadPromiseArr);
           uploadPromiseArr = [];
