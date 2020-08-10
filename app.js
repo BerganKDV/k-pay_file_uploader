@@ -105,7 +105,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         // Set some timeout if getting close to the limit
         await assessCallLimit(uploadRes.headers);
 
-      // Otherwise upload to the document storage
+        // Otherwise upload to the document storage
       } else {
 
         // Create the document
@@ -233,14 +233,8 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       // Create the array of configs
       const configs = [];
       let files = req.files['files-to-upload'];
-      progressStorage[hash] = {
-        totalFiles: files.length,
-        filesProcessed: 0,
-        percentComplete: 0,
-        fileErrors: 0,
-        errors: []
-      }
       console.log('Files', files);
+      progressStorage[hash].totalFiles = files.length;
       for (const fileObj of files) {
         let rowIndex = mappingObj.map(rec => rec.file_name).indexOf(fileObj.originalname);
         if (rowIndex === -1) {
@@ -274,7 +268,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         console.error('No files match between mapping file and selected files');
         progressStorage[hash].errors.push({
           message: 'No files match between mapping file and selected files'
-        })
+        });
       }
 
       let uploadPromiseArr = [];
@@ -297,9 +291,18 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         }
       }
     } catch (err) {
-      console.log('Error', err);
-      if (err.response) {
-        // TODO: handle these errors
+      if (err.response && err.response.data && err.response.data) {
+        var respData = err.response.data;
+        console.log('Err Response', err.response.data);
+        if (respData && respData.user_messages) {
+          var errorMsgs = respData.user_messages.map((msg) => msg.text);
+          progressStorage[hash].errors = errorMsgs.map((text) => ({ message: text }));
+          progressStorage[hash].percentComplete = 100;
+        }
+      } else {
+        console.log('Error processing file', err);
+        progressStorage[hash].errors = [{ message: JSON.stringify(err) }];
+        progressStorage[hash].percentComplete = 100;
       }
     }
   }
@@ -360,6 +363,13 @@ app.post('/upload', upload.fields(fields), function (req, res) {
   // Generate unique hash
   const hash = generateHash();
   console.log('Hash', hash);
+  progressStorage[hash] = {
+    totalFiles: 0,
+    filesProcessed: 0,
+    percentComplete: 0,
+    fileErrors: 0,
+    errors: []
+  }
 
   processFiles();
 
