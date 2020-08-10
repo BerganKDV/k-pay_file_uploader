@@ -94,7 +94,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         if (docRes.status !== 200) {
           throw docRes.body;
         }
-        // console.log('Document Response', docRes.data);
+        console.log('Document Response', docRes.data);
 
         const ticketUrl = docRes.data.photo_href;
         const buffer = await fs.readFileAsync(file.path);
