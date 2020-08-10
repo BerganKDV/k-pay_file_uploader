@@ -272,6 +272,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       }
 
       let uploadPromiseArr = [];
+      const concurrentJobs = 1; // Don't go to high otherwise you get anomolies
       for (let i = 0; i < configs.length; i++) {
 
         if (Date.now() >= (tokenObj.expiration - 60000)) {
@@ -280,11 +281,8 @@ app.post('/upload', upload.fields(fields), function (req, res) {
           console.log('Token Response', tokenRes.data);
           tokenObj = tokenRes.data;
         }
-
-        // uploadPromiseArr.push(uploadPromiseGenerator(i));
         uploadPromiseArr.push(uploadToKpay(configs[i], tokenObj));
 
-        const concurrentJobs = 1; // Don't go to high otherwise you get anomolies
         if ((i !== 0 && i % concurrentJobs === 0) || i === configs.length - 1) {
           await Promise.all(uploadPromiseArr);
           uploadPromiseArr = [];
