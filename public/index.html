@@ -75,7 +75,7 @@
         <img class="logo" width="90%" src="/images/csv_example.jpg" style="text-align: center; padding: 10px 0 30px">
         <br>
         <a href="/images/mapping.csv" download>
-          <button type="button" class="btn btn-success" onclick="submitFiles()">Download Sample CSV</button>
+          <button type="button" class="btn btn-success">Download Sample CSV</button>
         </a>
       </div>
 
@@ -201,7 +201,7 @@
         var formData = new FormData(document.getElementById('file-upload-form'));
         fetch('/upload', {
           method: 'POST',
-          body: formData
+          body: formData,
         }).then(function (res) {
           return res.json();
         }).then(function (body) {
