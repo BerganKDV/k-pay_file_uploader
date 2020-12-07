@@ -34,6 +34,13 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
 });
 
+app.get('/test', (req, res) => {
+  console.log('Headers', req.headers);
+  console.log('Body', req.body);
+  res.json({ headers: req.headers, body: req.body });
+  // res.sendFile(__dirname + '/public/index.html');
+});
+
 // Process form data
 const fields = [
   { name: 'files-to-upload', maxCount: 1000 },
