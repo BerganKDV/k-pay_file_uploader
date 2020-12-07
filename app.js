@@ -31,7 +31,6 @@ const app = express();
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', (req, res) => {
-  consoe.log('Why is this not using the middleware?');
   res.sendFile(__dirname + '/public/index.html');
 });
 
@@ -252,18 +251,18 @@ app.post('/upload', upload.fields(fields), function (req, res) {
 
         // Get the writable link for the document
         const location = docRes.headers.location;
-        const ticketRes = await axios.get(location, config);
-        if (ticketRes.status !== 200) {
+        const writableLinkRes = await axios.get(location, config);
+        if (writableLinkRes.status !== 200) {
           throw file.originalname
         }
 
         // Write the document
-        const writeUrl = ticketRes.data._links.content_rw;
+        const writeUrl = writableLinkRes.data._links.content_rw;
         const buffer = await fs.readFileAsync(file.path);
         await axios.post(writeUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
 
         // Set some timeout if getting close to the limit
-        await assessCallLimit(ticketRes.headers); // Can also use docRes.headers
+        await assessCallLimit(writableLinkRes.headers); // Can also use docRes.headers
       }
 
       // Cleanup file
