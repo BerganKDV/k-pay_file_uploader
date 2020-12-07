@@ -42,159 +42,52 @@ const fields = [
 ];
 app.post('/upload', upload.fields(fields), function (req, res) {
 
-  function increaseProgress() {
-    progressStorage[hash].filesProcessed += 1;
-    const percentComplete = Math.round((progressStorage[hash].filesProcessed / progressStorage[hash].totalFiles) * 1000) / 10;
-    progressStorage[hash].percentComplete = percentComplete;
-    // console.log('Progress', progressStorage[hash]);
-  }
+  // ============================================ MAIN ==============================================
 
-  function wait(x) {
-    return new Promise(resolve => setTimeout(resolve, x));
-  }
+  // console.log('File', req.files);
+  // console.log('Text', req.body);
+  const mappingFiles = req.files['mapping-file-to-upload'];
+  // console.log('Mapping File', mappingFiles);
 
-  async function assessCallLimit(headers) {
-    const callLimit = headers['x-calllimit-threshold'];
-    const currentCalls = headers['x-calllimit-currentcalls'];
-    const timeToWait = headers['x-callLimit-timetowait'];
-    console.log('Call Threshholds', `Current Calls: ${currentCalls}, Limit: ${callLimit}, Wait Time: ${timeToWait}`);
-    if (callLimit && currentCalls) {
-      if ((Number(callLimit) - 10) < Number(currentCalls)) { // 10 for a little buffer
-        await wait(30000);
-      }
-    }
-  }
-
-  // Upload to K-Pay helper func
-  async function uploadToKpay(config, tokenObj) {
-    const { company, type, file, rec_id, document_type, description, employee_photo } = config;
-    console.log('Config', JSON.stringify({ company, type, file, rec_id, document_type, description, employee_photo }));
-
-    try {
-      let linked_id = rec_id ? rec_id : file.originalname.substring(0, file.originalname.lastIndexOf('.'));
-      const docObj = {
-        file_name: file.originalname,
-        display_name: file.originalname,
-        type,
-        linked_id
-      }
-      if (document_type) docObj.document_type = { id: document_type };
-      if (description) docObj.description = description;
-      const config = {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authentication': `Bearer ${tokenObj.token}`,
-        }
-      }
-
-      // If it's an employee photo just upload the photo
-      if (employee_photo && employee_photo.toLowerCase() === 'yes') {
-        const docRes = await axios.get(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/employees/${linked_id}`, config);
-        if (docRes.status !== 200) {
-          throw docRes.body;
-        }
-        console.log('Document Response', docRes.data);
-
-        const ticketUrl = docRes.data.photo_href;
-        const buffer = await fs.readFileAsync(file.path);
-        const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
-        console.log('Emp Photo Upload Response', uploadRes.status);
-        // console.log('Upload headers', uploadRes.headers);
-
-        // Set some timeout if getting close to the limit
-        await assessCallLimit(uploadRes.headers);
-
-        // Otherwise upload to the document storage
-      } else {
-
-        // Create the document
-        console.log('Doc Object', JSON.stringify(docObj));
-        const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
-        // console.log('Document Response', docRes.headers.location);
-        if (docRes.status !== 201) {
-          console.log('Error Body', docRes.body);
-          throw docRes.body;
-        }
-
-        // Get the writable link for the document
-        const location = docRes.headers.location;
-        const ticketRes = await axios.get(location, config);
-        if (ticketRes.status !== 200) {
-          throw file.originalname
-        }
-
-        // Write the document
-        const ticketUrl = ticketRes.data._links.content_rw;
-        const buffer = await fs.readFileAsync(file.path);
-        const uploadRes = await axios.post(ticketUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
-
-        // Set some timeout if getting close to the limit
-        await assessCallLimit(ticketRes.headers); // Can also use docRes.headers
-      }
-
-      // Cleanup file
-      fs.unlink(file.path, (err) => {
-        if (err) throw err;
+  // Validate mapping file
+  if (mappingFiles) {
+    const mappingFileName = mappingFiles[0].originalname;
+    const extension = mappingFileName.substr(mappingFileName.length - 4);
+    console.log('Extension', extension);
+    if (mappingFileName.substr(mappingFileName.length - 4) !== '.csv') {
+      console.log('Incorrect File Type');
+      res.send({
+        status: 'failure',
+        message: 'Incorrect mapping file type, must be a CSV file.'
       });
-
-      // Increase the progress
-      increaseProgress();
-
-      // Wait so you don't hit usage limits
-      // await wait(1000);
-
-    } catch (err) {
-      console.error('Error Response', err.response && err.response.data ? err.response.data : err.response ? err.response : JSON.string(err));
-      let message = `There was a problem with the mapping data.`;
-      if (err.response && err.response.data) {
-        const data = err.response.data;
-        let errors;
-        if (data.errors) {
-          errors = data.errors.map((err) => err.message).join(' ');
-          if (errors.indexOf(`'Linked Object' not found`) >= 0 && type === 'HR_EMPLOYEE_DOCUMENT') {
-            errors = `Employee not found, please check that "${rec_id}" is the correct Account Id.`
-          }
-        } else {
-          errors = data;
-        }
-        message = errors;
-      }
-      increaseProgress();
-      progressStorage[hash].fileErrors += 1;
-      progressStorage[hash].errors.push({ file: file.originalname, message });
-
-      // Cleanup file
-      fs.unlink(file.path, (err) => {
-        if (err) throw err;
-      });
-      await wait(3800);
+      return;
     }
   }
 
-  // Create unique hash helper function
-  function generateHash() {
-    function s4() {
-      return Math.floor((1 + Math.random()) * 0x10000)
-        .toString(16)
-        .substring(1);
-    }
-    return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+  // Validate files to upload
+  if (!req.files['files-to-upload']) {
+    console.log('No Files');
+    res.send({
+      status: 'failure',
+      message: 'No File Selected'
+    });
+    return;
   }
 
-  function stripBOM(string) {
-    if (typeof string !== 'string') {
-      throw new TypeError(`Expected a string, got ${typeof string}`);
-    }
-
-    // Catches EFBBBF (UTF-8 BOM) because the buffer-to-string
-    // conversion translates it to FEFF (UTF-16 BOM)
-    if (string.charCodeAt(0) === 0xFEFF) {
-      return string.slice(1);
-    }
-
-    return string;
+  // Generate unique hash for the job to track progress/errors
+  const hash = generateHash();
+  console.log('Hash', hash);
+  progressStorage[hash] = {
+    totalFiles: 0,
+    filesProcessed: 0,
+    percentComplete: 0,
+    fileErrors: 0,
+    errors: []
   }
+
+  processFiles();
+
+  // ============================================ Functions ==============================================
 
   // Asyncronously process files
   async function processFiles() {
@@ -228,7 +121,6 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       // console.log('Token Response', tokenRes.data);
       const tokenObj = tokenRes.data;
       const docTypeMap = await lookupDocTypes(tokenObj.token, req.body.company);
-
 
       // Create the array of configs
       const configs = [];
@@ -289,18 +181,135 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         }
       }
     } catch (err) {
-      if (err.response && err.response.data && err.response.data) {
+      if (err.response && err.response.data) {
         var respData = err.response.data;
         console.log('Err Response', err.response.data);
         if (respData && respData.user_messages) {
           var errorMsgs = respData.user_messages.map((msg) => msg.text);
           progressStorage[hash].errors = errorMsgs.map((text) => ({ message: text }));
-          progressStorage[hash].percentComplete = 100;
+        } else {
+          progressStorage[hash].errors = [{ message: JSON.stringify(err) }];
         }
       } else {
         console.log('Error processing file', err);
         progressStorage[hash].errors = [{ message: JSON.stringify(err) }];
-        progressStorage[hash].percentComplete = 100;
+      }
+      progressStorage[hash].percentComplete = 100;
+    }
+  }
+
+  // Upload to K-Pay helper func
+  async function uploadToKpay(config, tokenObj) {
+    const { company, type, file, rec_id, document_type, description, employee_photo } = config;
+    console.log('Config', JSON.stringify({ company, type, file, rec_id, document_type, description, employee_photo }));
+
+    try {
+      let linked_id = rec_id ? rec_id : file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+      const docObj = {
+        file_name: file.originalname,
+        display_name: file.originalname,
+        type,
+        linked_id
+      }
+      if (document_type) docObj.document_type = { id: document_type };
+      if (description) docObj.description = description;
+      const config = {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authentication': `Bearer ${tokenObj.token}`,
+        }
+      }
+
+      // If it's an employee photo just upload the photo
+      if (employee_photo && employee_photo.toLowerCase() === 'yes') {
+        const docRes = await axios.get(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/employees/${linked_id}`, config);
+        if (docRes.status !== 200) {
+          throw docRes.body;
+        }
+        console.log('Document Response', docRes.data);
+
+        const photoUrl = docRes.data.photo_href;
+        const buffer = await fs.readFileAsync(file.path);
+        const uploadRes = await axios.post(photoUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
+        console.log('Emp Photo Upload Response', uploadRes.status);
+        // console.log('Upload headers', uploadRes.headers);
+
+        // Set some timeout if getting close to the limit
+        await assessCallLimit(uploadRes.headers);
+
+        // Otherwise upload to the document storage
+      } else {
+
+        // Create the document
+        console.log('Doc Object', JSON.stringify(docObj));
+        const docRes = await axios.post(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/ids`, docObj, config);
+        // console.log('Document Response', docRes.headers.location);
+        if (docRes.status !== 201) {
+          console.log('Error Body', docRes.body);
+          throw docRes.body;
+        }
+
+        // Get the writable link for the document
+        const location = docRes.headers.location;
+        const ticketRes = await axios.get(location, config);
+        if (ticketRes.status !== 200) {
+          throw file.originalname
+        }
+
+        // Write the document
+        const writeUrl = ticketRes.data._links.content_rw;
+        const buffer = await fs.readFileAsync(file.path);
+        await axios.post(writeUrl, buffer, { headers: { 'Content-Type': file.mimetype } });
+
+        // Set some timeout if getting close to the limit
+        await assessCallLimit(ticketRes.headers); // Can also use docRes.headers
+      }
+
+      // Cleanup file
+      fs.unlink(file.path, (err) => {
+        if (err) throw err;
+      });
+
+      // Increase the progress
+      increaseProgress();
+
+    } catch (err) {
+      console.error('Error Response', err.response && err.response.data ? err.response.data : err.response ? err.response : JSON.string(err));
+      let message = `There was a problem with the mapping data.`;
+      if (err.response && err.response.data) {
+        const data = err.response.data;
+        let errors;
+        if (data.errors) {
+          errors = data.errors.map((err) => err.message).join(' ');
+          if (errors.indexOf(`'Linked Object' not found`) >= 0 && type === 'HR_EMPLOYEE_DOCUMENT') {
+            errors = `Employee not found, please check that "${rec_id}" is the correct Account Id.`
+          }
+        } else {
+          errors = data;
+        }
+        message = errors;
+      }
+      increaseProgress();
+      progressStorage[hash].fileErrors += 1;
+      progressStorage[hash].errors.push({ file: file.originalname, message });
+
+      // Cleanup file
+      fs.unlink(file.path, (err) => {
+        if (err) throw err;
+      });
+      await wait(3800);
+    }
+  }
+
+  async function assessCallLimit(headers) {
+    const callLimit = headers['x-calllimit-threshold'];
+    const currentCalls = headers['x-calllimit-currentcalls'];
+    const timeToWait = headers['x-callLimit-timetowait'];
+    console.log('Call Threshholds', `Current Calls: ${currentCalls}, Limit: ${callLimit}, Wait Time: ${timeToWait}`);
+    if (callLimit && currentCalls) {
+      if ((Number(callLimit) - 10) < Number(currentCalls)) { // 10 for a little buffer
+        await wait(30000);
       }
     }
   }
@@ -326,50 +335,40 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     return docTypeMap;
   }
 
-  // ============================================ MAIN ==============================================
+  function increaseProgress() {
+    progressStorage[hash].filesProcessed += 1;
+    const percentComplete = Math.round((progressStorage[hash].filesProcessed / progressStorage[hash].totalFiles) * 1000) / 10;
+    progressStorage[hash].percentComplete = percentComplete;
+    // console.log('Progress', progressStorage[hash]);
+  }
 
-  // console.log('File', req.files);
-  // console.log('Text', req.body);
-  const mappingFiles = req.files['mapping-file-to-upload'];
-  // console.log('Mapping File', mappingFiles);
+  function wait(x) {
+    return new Promise(resolve => setTimeout(resolve, x));
+  }
 
-  // Validate mapping file
-  if (mappingFiles) {
-    const mappingFileName = mappingFiles[0].originalname;
-    const extension = mappingFileName.substr(mappingFileName.length - 4);
-    console.log('Extension', extension);
-    if (mappingFileName.substr(mappingFileName.length - 4) !== '.csv') {
-      console.log('Incorrect File Type');
-      res.send({
-        status: 'failure',
-        message: 'Incorrect mapping file type, must be a CSV file.'
-      });
-      return;
+  // Create unique hash helper function
+  function generateHash() {
+    function s4() {
+      return Math.floor((1 + Math.random()) * 0x10000)
+        .toString(16)
+        .substring(1);
     }
+    return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
   }
 
-  // Validate files to upload
-  if (!req.files['files-to-upload']) {
-    console.log('No Files');
-    res.send({
-      status: 'failure',
-      message: 'No File Selected'
-    });
-    return;
-  }
+  function stripBOM(string) {
+    if (typeof string !== 'string') {
+      throw new TypeError(`Expected a string, got ${typeof string}`);
+    }
 
-  // Generate unique hash
-  const hash = generateHash();
-  console.log('Hash', hash);
-  progressStorage[hash] = {
-    totalFiles: 0,
-    filesProcessed: 0,
-    percentComplete: 0,
-    fileErrors: 0,
-    errors: []
-  }
+    // Catches EFBBBF (UTF-8 BOM) because the buffer-to-string
+    // conversion translates it to FEFF (UTF-16 BOM)
+    if (string.charCodeAt(0) === 0xFEFF) {
+      return string.slice(1);
+    }
 
-  processFiles();
+    return string;
+  }
 
   res.send({ status: 'success', message: hash });
 });
