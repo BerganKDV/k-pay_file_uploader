@@ -9,8 +9,23 @@ const upload = multer({ dest: tempFolder });
 const { promisify } = require('util');
 fs.readFileAsync = promisify(fs.readFile);
 const progressStorage = {};
+const app = require('express')();
+const basicAuth = require('express-basic-auth');
 
-const app = express();
+app.use(basicAuth({
+  users: {
+    admin: 'admin123',
+    test: 'test123',
+  },
+  challenge: true,
+  unauthorizedResponse: getUnauthorizedResponse,
+}));
+
+function getUnauthorizedResponse(req) {
+  return req.auth
+    ? ('Credentials ' + req.auth.user + ':' + req.auth.password + ' rejected')
+    : 'No credentials provided'
+}
 
 // Add basic authentication
 // const username = process.env.USERNAME;
@@ -34,12 +49,18 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
 });
 
-app.get('/test', (req, res) => {
-  console.log('Headers', req.headers);
-  console.log('Body', req.body);
-  res.json({ headers: req.headers, body: req.body });
-  // res.sendFile(__dirname + '/public/index.html');
-});
+// app.get('/test', (req, res) => {
+//   console.log('Headers', req.headers);
+//   console.log('Body', req.body);
+//   res.json({ headers: req.headers, body: req.body });
+//   // res.sendFile(__dirname + '/public/index.html');
+// });
+
+
+// //Listening on Port 8080
+// app.listen(8080, () => {
+//   console.log('App listening on port 8080!')
+// })
 
 // Process form data
 const fields = [
