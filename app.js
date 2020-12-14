@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const axios = require('axios');
-const auth = require('basic-auth');
+// const auth = require('basic-auth');
 const fs = require('fs');
 const papa = require('papaparse');
 const tempFolder = process.env.NODE_ENV === 'Production' ? '/tmp' : './tmp';
@@ -11,11 +11,15 @@ fs.readFileAsync = promisify(fs.readFile);
 const progressStorage = {};
 const app = require('express')();
 const basicAuth = require('express-basic-auth');
+// const env = require('./env');
+
+require('dotenv').config();
 
 app.use(basicAuth({
   users: {
     admin: 'admin123',
     test: 'test123',
+    username: process.env.PASSWORD.toString(),
   },
   challenge: true,
   unauthorizedResponse: getUnauthorizedResponse,
@@ -58,9 +62,9 @@ app.get('/', (req, res) => {
 
 
 // //Listening on Port 8080
-// app.listen(8080, () => {
-//   console.log('App listening on port 8080!')
-// })
+app.listen(8080, () => {
+  console.log('App listening on port 8080!')
+})
 
 // Process form data
 const fields = [
