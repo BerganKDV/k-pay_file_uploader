@@ -1,7 +1,6 @@
 const express = require('express');
 const multer = require('multer');
 const axios = require('axios');
-// const auth = require('basic-auth');
 const fs = require('fs');
 const papa = require('papaparse');
 const tempFolder = process.env.NODE_ENV === 'Production' ? '/tmp' : './tmp';
@@ -11,15 +10,13 @@ fs.readFileAsync = promisify(fs.readFile);
 const progressStorage = {};
 const app = require('express')();
 const basicAuth = require('express-basic-auth');
-// const env = require('./env');
 
 require('dotenv').config();
 
 app.use(basicAuth({
   users: {
-    admin: 'admin123',
-    test: 'test123',
-    username: process.env.PASSWORD.toString(),
+    BKDVUser: process.env.BKDVUSER_PASS.toString(),
+    Admin: process.env.ADMIN_PASS.toString()
   },
   challenge: true,
   unauthorizedResponse: getUnauthorizedResponse,
@@ -30,22 +27,6 @@ function getUnauthorizedResponse(req) {
     ? ('Credentials ' + req.auth.user + ':' + req.auth.password + ' rejected')
     : 'No credentials provided'
 }
-
-// Add basic authentication
-// const username = process.env.USERNAME;
-// const password = process.env.PASSWORD;
-// app.use((req, res, next) => {
-//   let user = auth(req)
-
-//   if (user === undefined || user['name'] !== username || user['pass'] !== password) {
-//     res.statusCode = 401
-//     res.setHeader('WWW-Authenticate', 'Basic realm="Node"')
-//     res.end('Incorrect username or password.')
-//   } else {
-//     next();
-//   }
-// });
-
 
 app.use(express.static(__dirname + '/public'));
 
@@ -62,9 +43,9 @@ app.get('/', (req, res) => {
 
 
 // //Listening on Port 8080
-app.listen(8080, () => {
-  console.log('App listening on port 8080!')
-})
+// app.listen(8080, () => {
+//   console.log('App listening on port 8080!')
+// })
 
 // Process form data
 const fields = [
