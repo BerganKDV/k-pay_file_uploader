@@ -7,6 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
     integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.min.js"></script>
   <style>
     @media (min-width: 1200px) {
       .container {
@@ -315,9 +316,9 @@
     <script>
       // Initializing error data variable
       let errorData = [];
-
+      // ************ FUNCTION TO SUBMIT FILES ************
       function submitFiles() {
-        // Check progress function
+        /// ************ FUNCTION TO CHECK PROGRESS ************
         function checkProgress() {
           // Get Session Storage Hash
           const url = '/progress?hash=' + sessionStorage.getItem('job_hash');
@@ -328,17 +329,20 @@
               return res.json();
             }).then((progress) => {
               if (progress.errors.length > 0) {
-                // Moved this snippet to after progress is complete since I was getting duplication of errors - KK
-                // for (error of progress.errors) {
-                //   errorData.push([error.file, error.rec_id, error.document_type, error.description, error
-                //     .employee_photo, error.message
-                //   ])
-                //   console.log(error)
-                //   document.getElementById('file_progress_errors').innerHTML +=
-                //     `<p class="error text-danger">${error.file ? error.file + ' : ' : ''}${error.message}</p>`;
-                // }
+                for (error of progress.errors) {
+                  // Push Errors to "errorData" Array (To be compiled in CSV file)
+                  errorData.push([error.file, error.rec_id, error.document_type, error.description, error
+                    .employee_photo, error.message
+                  ])
+                  console.log(error)
+                  // Display Errors on Page
+                  document.getElementById('file_progress_errors').innerHTML +=
+                    `<p class="error text-danger">${error.file ? error.file + ' : ' : ''}${error.message}</p>`;
+                }
               }
               current_progress = +progress.percentComplete;
+
+              // When Uploading starts:
               if (current_progress > 0) {
                 console.log('Current Progress', current_progress);
                 document.getElementById('file_progress').className =
@@ -349,48 +353,32 @@
                   .filesProcessed + '/' + progress.totalFiles + ')';
               }
 
-              // When progress is over 100% Complete
+              // When progress is over 100% Complete:
               if (current_progress >= 100) {
-
-                // Print Errors on Screen & Add to CSV File
-                for (error of progress.errors) {
-                  errorData.push([error.file, error.rec_id, error.document_type, error.description, error
-                    .employee_photo, error.message
-                  ])
-                  console.log(error)
-                  document.getElementById('file_progress_errors').innerHTML +=
-                    `<p class="error text-danger">${error.file ? error.file + ' : ' : ''}${error.message}</p>`;
-                }
-
                 // Add a "Download Errors Button" if there are any Errors
                 if (progress.errors.length > 0) {
                   document.getElementById('download-errors').innerHTML =
                     `<button type="button" class="btn" id="download-csv-btn" onclick="downloadCsv()">Download Errors</button>`;
                 }
-
                 // Progress Bar turns green
                 document.getElementById('file_progress').className = 'progress-bar bg-success';
-
                 // Submit Button set to "hidden"
                 document.getElementById('submit-btn').style.visibility = 'hidden';
-
                 // Add Reset Button
                 document.getElementById('clear-errors').innerHTML =
                   `<button type="button" class="btn btn-warning" id="clear-errors-btn" onclick="refreshPage()">Reset</button>`
-
-                console.log('Finished');
-
                 // If there are file Errors, display pop-up.
                 if (progress.fileErrors > 0) {
                   alert(
                     `Upload has finished but ${progress.fileErrors} file(s) failed to upload. See the error message(s) and try uploading the failures again.`
                   );
                 }
+                console.log('Finished');
                 clearInterval(interval);
               }
             })
           }, 2000);
-        }
+        } // End of checkProgress Function
 
         // Reveal the progress bar and set styles
         document.getElementById('file_progress_container').className = 'progress';
@@ -415,24 +403,23 @@
             document.getElementById('file_progress_container').innerHTML = '&nbsp' + body.message;
           }
         });
-      }
+      } // End of submitFiles Function
 
-      // Reset (Reload) Page
+      // ************ FUNCTION TO RESET(RELOAD) PAGE ************
       function refreshPage() {
         location.reload();
       }
 
-      // Creation of CSV File of Errors
+      // ************ FUNCTION TO DOWNLOAD ERROR CSV FILE ************
       function downloadCsv() {
-        // Each Column
-        var csv = 'file_name,system_id,document_type_name,description,employee_photo,error\n';
-        errorData.forEach(function (row) {
-          csv += row.join(',');
-          csv += "\n";
-        });
+        // Create of CSV File using PapaParse
 
-        console.log(csv);
-        var hiddenElement = document.createElement('a');
+        const csv = Papa.unparse({
+          "fields": ["file_name", "system_id", "document_type_name", "description", "employee_photo", "error"],
+          "data": errorData
+        });
+        // Download CSV File
+        const hiddenElement = document.createElement('a');
         hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
         hiddenElement.target = '_blank';
         hiddenElement.download = 'errors.csv';
