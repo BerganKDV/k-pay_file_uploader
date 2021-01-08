@@ -49,6 +49,10 @@
       font-size: 15px;
     }
 
+    .tip {
+      font-size: 12px;
+    }
+
     /* Sample CSV Image */
     .figure {
       width: 90%;
@@ -94,8 +98,7 @@
         <div class="p-3 mb-2 bg-info text-white">
           The <b>username</b> and <b>password</b> must belong to an employee in the company, not a "super user" that has
           access to the company.
-          The user must have access to the employee(s) you are uploading files to and must also have access to document
-          storage.
+          The user must have access to document storage and the employee(s) to which you are uploading files.
         </div>
         <!-- Step 3 -->
         <li>Upload a <b>CSV Mapping File</b> (see detailed instructions below, use the example CSV file as a guide).
@@ -121,17 +124,17 @@
                 <th scope="row">file_name</th>
                 <td><b>YES</b></td>
                 <td>
-                  Indicate the name of the file that this line corresponds to (There should be a line for each file
+                  Indicate the unique name of the file that this line corresponds to (There should be a line for each file
                   uploaded).
                   <br>Note, the file extensions are not required. (Example, can either upload "resume" or "resume.pdf")
-                  <br>The names of the files that you are uploading must be unique.
-                  <br><br><i>Tip: When copying many files, it will save time to copy the files from the folder on your
-                    coputer into the csv mapping file.
-                    On a MAC, highlight all files and copy and paste the file names from the file manager into the csv
+                  <i class = 'tip'><br>
+                    Tip: When copying many files, save time by copying the files from the folder on your
+                    computer into this column on the CSV mapping file.
+                    On a MAC, highlight all files and copy/paste the file names from the file manager into the CSV
                     mapping file.
                     On a PC, highlight all files and copy the "file path" of the file names from the file explorer.
-                    Then, copy into your csv mapping
-                    file and manipulate in Excel (find and replace) so that just the file name is listed. </i>
+                    Then, paste the list into your CSV mapping
+                    file and manipulate it in Excel (find and replace) so that only the file name is listed. </i>
                 </td>
               </tr>
               <!-- Row 2 (system_id) -->
@@ -139,7 +142,7 @@
                 <th scope="row">system_id</th>
                 <td><b>YES</b></td>
                 <td>
-                  Indicate the System ID you wish to attach the file. The specific System ID will depend on the type of
+                  Indicate the System ID for which you wish to attach the file. The specific System ID will depend on the type of
                   document you are uploading.
                   <br>For Employee Documents, this is the "Account ID" of the employee record. This can be found by
                   adding the Account ID field to your record list in K-Pay.
@@ -158,7 +161,7 @@
                 <th scope="row">description</th>
                 <td>NO</td>
                 <td>
-                  Indicate the Description that will be included in the document description in K-Pay.
+                  Include a description with the file for the document description field in K-Pay.
                 </td>
               </tr>
               <!-- Row 5 (employee_photo) -->
@@ -166,17 +169,10 @@
                 <th scope="row">employee_photo</th>
                 <td>NO</td>
                 <td>
-                  Indicate if file should be uploaded to employee photo area in Account Demographics (Must be in
-                  a.jpeg, .jpg, or .gif file format.) by putting a "Yes" in this column, otherwise leave blank.
+                  Indicate if the file should be uploaded to the employee photo area in Account Demographics (Must be in
+                  a .jpeg, .jpg, or .gif file format.) by putting a "Yes" in this column, otherwise leave blank.
                   <br>
                   The Document Type and Description columns will be ignored.
-                  <br>
-                  The file will not be stored in the Document Storage area, it will be uploaded to the photo area of the
-                  Account Demographics.
-                  <br>
-                  There is no manipulation or validation of the file, so ensure the file is a valid image file type and
-                  is
-                  formatted correctly before uploading.
                 </td>
               </tr>
             </tbody>
