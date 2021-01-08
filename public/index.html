@@ -74,15 +74,13 @@
 <body>
   <div class="container">
     <!-- ***** HEADER ***** -->
-
     <div class="header clearfix page-header border-bottom">
       <div class="container-fluid"></div>
       <h1>K-Pay File Uploader</h1>
       <h3 class='subtitle'>Easily upload documents to K-Pay!</h3>
     </div>
-
+    <!-- ***** INSTRUCTIONS ***** -->
     <div class="jumbotron">
-      <!-- ***** INSTRUCTIONS ***** -->
       <h2 class="lead">
         <b><u>Instructions:</u></b>
       </h2>
@@ -134,7 +132,6 @@
                     On a PC, highlight all files and copy the "file path" of the file names from the file explorer.
                     Then, copy into your csv mapping
                     file and manipulate in Excel (find and replace) so that just the file name is listed. </i>
-
                 </td>
               </tr>
               <!-- Row 2 (system_id) -->
@@ -331,14 +328,18 @@
               if (progress.errors.length > 0) {
                 for (error of progress.errors) {
                   // Push Errors to "errorData" Array (To be compiled in CSV file)
-                  errorData.push([error.file, error.rec_id, error.document_type, error.description, error
-                    .employee_photo, error.message
-                  ])
-                  console.log(error)
-                  // Display Errors on Page
-                  document.getElementById('file_progress_errors').innerHTML +=
-                    `<p class="error text-danger">${error.file ? error.file + ' : ' : ''}${error.message}</p>`;
+                  if (!error.message.includes(
+                      'was selected to upload but has no match in the mapping file')) {
+                    errorData.push([error.file, error.rec_id, error.document_type, error.description, error
+                      .employee_photo, error.message
+                    ])
+                    console.log(error)
+                    // Display Errors on Page
+                    document.getElementById('file_progress_errors').innerHTML +=
+                      `<p class="error text-danger">${error.file ? error.file + ' : ' : ''}${error.message}</p>`;
+                  }
                 }
+
               }
               current_progress = +progress.percentComplete;
 
@@ -357,6 +358,20 @@
               if (current_progress >= 100) {
                 // Add a "Download Errors Button" if there are any Errors
                 if (progress.errors.length > 0) {
+
+                  for (error of progress.errors) {
+                    // Push Errors to "errorData" Array (To be compiled in CSV file)
+                    if (error.message.includes(
+                        'was selected to upload but has no match in the mapping file')) {
+                      errorData.push([error.file, error.rec_id, error.document_type, error.description, error
+                        .employee_photo, error.message
+                      ])
+                      console.log(error)
+                      // Display Errors on Page
+                      document.getElementById('file_progress_errors').innerHTML +=
+                        `<p class="error text-danger">${error.file ? error.file + ' : ' : ''}${error.message}</p>`;
+                    }
+                  }
                   document.getElementById('download-errors').innerHTML =
                     `<button type="button" class="btn" id="download-csv-btn" onclick="downloadCsv()">Download Errors</button>`;
                 }
@@ -399,8 +414,9 @@
             sessionStorage.setItem('job_hash', body.message);
             checkProgress();
           } else {
-            document.getElementById('file_progress_container').style.color = 'red';
-            document.getElementById('file_progress_container').innerHTML = '&nbsp' + body.message;
+            // document.getElementById('file_progress').style.color = 'red';
+            document.getElementById('file_progress').classList = []
+            document.getElementById('file_progress').innerHTML = '&nbsp' + body.message;
           }
         });
       } // End of submitFiles Function

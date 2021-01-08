@@ -63,7 +63,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     }
   }
 
-  // Validate files to upload TODO: Fix bug that doesn't allow for submit after this error without refreshing page
+  // Validate files to upload
   if (!req.files['files-to-upload']) {
     console.log('No Files');
     res.send({
@@ -400,6 +400,6 @@ app.get('/progress', (req, res) => {
 });
 
 //Listening on Port 3000
-app.listen(process.env.PORT || 3000,  () => {
+app.listen(process.env.PORT || 3000, () => {
   console.log('App listening on port 3000!')
 });
