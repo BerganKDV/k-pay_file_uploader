@@ -10,7 +10,6 @@ fs.readFileAsync = promisify(fs.readFile);
 const progressStorage = {};
 const app = require('express')();
 const basicAuth = require('express-basic-auth');
-require('dotenv').config();
 
 // Basic Authentication
 app.use(basicAuth({
