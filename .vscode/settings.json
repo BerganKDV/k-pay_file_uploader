@@ -1,0 +1,8 @@
+{
+    "appService.zipIgnorePattern": [
+        "node_modules{,/**}",
+        ".vscode{,/**}"
+    ],
+    "appService.defaultWebAppToDeploy": "/subscriptions/6804a795-ef33-4979-86be-2d8b7fa26442/resourceGroups/BerganKDV/providers/Microsoft.Web/sites/k-pay-file-uploader",
+    "appService.deploySubpath": "."
+}

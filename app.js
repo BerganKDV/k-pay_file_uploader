@@ -1,7 +1,6 @@
 const express = require('express');
 const multer = require('multer');
 const axios = require('axios');
-const auth = require('basic-auth');
 const fs = require('fs');
 const papa = require('papaparse');
 const tempFolder = process.env.NODE_ENV === 'Production' ? '/tmp' : './tmp';
@@ -9,36 +8,29 @@ const upload = multer({ dest: tempFolder });
 const { promisify } = require('util');
 fs.readFileAsync = promisify(fs.readFile);
 const progressStorage = {};
+const app = require('express')();
+const basicAuth = require('express-basic-auth');
 
-const app = express();
+// Basic Authentication
+app.use(basicAuth({
+  users: {
+    BKDVUser: process.env.BKDVUSER_PASS.toString(),
+    Admin: process.env.ADMIN_PASS.toString()
+  },
+  challenge: true,
+  unauthorizedResponse: getUnauthorizedResponse,
+}));
 
-// Add basic authentication
-// const username = process.env.USERNAME;
-// const password = process.env.PASSWORD;
-// app.use((req, res, next) => {
-//   let user = auth(req)
-
-//   if (user === undefined || user['name'] !== username || user['pass'] !== password) {
-//     res.statusCode = 401
-//     res.setHeader('WWW-Authenticate', 'Basic realm="Node"')
-//     res.end('Incorrect username or password.')
-//   } else {
-//     next();
-//   }
-// });
-
+function getUnauthorizedResponse(req) {
+  return req.auth
+    ? ('Credentials ' + req.auth.user + ':' + req.auth.password + ' rejected')
+    : 'No credentials provided'
+}
 
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
-});
-
-app.get('/test', (req, res) => {
-  console.log('Headers', req.headers);
-  console.log('Body', req.body);
-  res.json({ headers: req.headers, body: req.body });
-  // res.sendFile(__dirname + '/public/index.html');
 });
 
 // Process form data
@@ -75,7 +67,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
     console.log('No Files');
     res.send({
       status: 'failure',
-      message: 'No File Selected'
+      message: 'No File Selected. Please Select file(s) to upload along with a mapping CSV file.'
     });
     return;
   }
@@ -127,7 +119,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       // console.log('Token Response', tokenRes.data);
       const tokenObj = tokenRes.data;
       const docTypeMap = await lookupDocTypes(tokenObj.token, req.body.company);
-
+      console.log('doc Type Map', docTypeMap)
       // Create the array of configs
       const configs = [];
       let files = req.files['files-to-upload'];
@@ -146,6 +138,17 @@ app.post('/upload', upload.fields(fields), function (req, res) {
           const description = mappingObj[rowIndex].description;
           const employee_photo = mappingObj[rowIndex].employee_photo;
 
+          // Check if Document Type Matches with what is in K-Pay (Added by KK 1/4/2020)
+          if (documentName !== '' && document_type === undefined) {
+            console.error(`"${fileObj.originalname}" does not have a mataching document type.  ${documentName} does not exist in K-Pay`);
+            progressStorage[hash].fileErrors += 1;
+            progressStorage[hash].errors.push({
+              file: fileObj.originalname, message: `"${fileObj.originalname}" does not have a mataching document type.  Document Type: "${documentName}" does not exist in K-Pay.`,
+              rec_id: rec_id, document_type: documentName, description: description, employee_photo: employee_photo
+            });
+            increaseProgress();
+          }
+
           configs.push({
             company: req.body.company,
             type: req.body.document_type,
@@ -156,8 +159,9 @@ app.post('/upload', upload.fields(fields), function (req, res) {
             file: fileObj
           });
         } else {
-          console.error(`"${fileObj.originalname}" has no match in the mapping file.`);
-          progressStorage[hash].errors.push({ message: `"${fileObj.originalname}" has no match in the mapping file.` });
+          console.error(`"${fileObj.originalname}" was selected to upload but has no match in the mapping file.`);
+          progressStorage[hash].fileErrors += 1;
+          progressStorage[hash].errors.push({ message: `"${fileObj.originalname}" was selected to upload but has no match in the mapping file.` });
           increaseProgress();
         }
       }
@@ -192,12 +196,15 @@ app.post('/upload', upload.fields(fields), function (req, res) {
         console.log('Err Response', err.response.data);
         if (respData && respData.user_messages) {
           var errorMsgs = respData.user_messages.map((msg) => msg.text);
+          progressStorage[hash].fileErrors += 1;
           progressStorage[hash].errors = errorMsgs.map((text) => ({ message: text }));
         } else {
+          progressStorage[hash].fileErrors += 1;
           progressStorage[hash].errors = [{ message: JSON.stringify(err) }];
         }
       } else {
         console.log('Error processing file', err);
+        progressStorage[hash].fileErrors += 1;
         progressStorage[hash].errors = [{ message: JSON.stringify(err) }];
       }
       progressStorage[hash].percentComplete = 100;
@@ -230,6 +237,8 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       // If it's an employee photo just upload the photo
       if (employee_photo && employee_photo.toLowerCase() === 'yes') {
         const docRes = await axios.get(`https://secure.saashr.com/ta/rest/v2/companies/|${company}/employees/${linked_id}`, config);
+        console.log(config)
+        console.log(linked_id)
         if (docRes.status !== 200) {
           throw docRes.body;
         }
@@ -298,7 +307,7 @@ app.post('/upload', upload.fields(fields), function (req, res) {
       }
       increaseProgress();
       progressStorage[hash].fileErrors += 1;
-      progressStorage[hash].errors.push({ file: file.originalname, message });
+      progressStorage[hash].errors.push({ file: file.originalname, message: message, rec_id: rec_id, document_type: document_type, description: description, employee_photo: employee_photo });
 
       // Cleanup file
       fs.unlink(file.path, (err) => {
@@ -389,4 +398,7 @@ app.get('/progress', (req, res) => {
   res.send(progressStorage[hash]);
 });
 
-app.listen(process.env.PORT || 3000);
+//Listening on Port 3000
+app.listen(process.env.PORT || 3000, () => {
+  console.log('App listening on port 3000!')
+});

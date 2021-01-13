@@ -7,11 +7,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
     integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.min.js"></script>
   <style>
     @media (min-width: 1200px) {
       .container {
         max-width: 900px;
       }
+    }
+
+    .jumbotron {
+      padding-top: 20px;
+      padding-bottom: 20px;
     }
 
     .progress {
@@ -27,174 +33,368 @@
       margin: 0;
     }
 
-    .error {
-      color: red;
+    .lead {
+      font-size: large;
     }
 
-    p {
-      margin-bottom: 5px;
+    /* CSV Mapping File Table */
+    .table {
+      margin: 20px;
+      width: auto;
+      font-size: 15px;
+    }
+
+    /* Info Text */
+    .bg-info {
+      font-size: 15px;
+    }
+
+    .tip {
+      font-size: 12px;
+    }
+
+    /* Sample CSV Image */
+    .figure {
+      width: 90%;
+    }
+
+    /* Headers */
+    .header {
+      text-align: center;
+      margin: 25px;
+    }
+
+    .subtitle {
+      font-size: 20px;
+    }
+
+    .form-header {
+      font-size: 20px;
+      margin-bottom: 25px;
     }
   </style>
 </head>
 
 <body>
   <div class="container">
-    <div class="header clearfix">
-      <nav>
-        <div class="container-fluid">
-          <div class="navbar-header">
-            <h3 class="text-muted">K-Pay File Uploader</h3>
+    <!-- ***** HEADER ***** -->
+    <div class="header clearfix page-header border-bottom">
+      <div class="container-fluid"></div>
+      <h1>K-Pay File Uploader</h1>
+      <h3 class='subtitle'>Easily upload documents to K-Pay!</h3>
+    </div>
+    <!-- ***** INSTRUCTIONS ***** -->
+    <div class="jumbotron">
+      <h2 class="lead">
+        <b><u>Instructions:</u></b>
+      </h2>
+      <ol class="lead">
+        <!-- Step 1 -->
+        <li>Using the form below, fill out your <b>Company Shortname</b> and <b>API Key</b> associated with your K-Pay
+          account.</li>
+        <!-- Step 2 -->
+        <li>Fill in a <b>Username</b> and <b>Password</b> with which the application will complete the upload.</li>
+        <!-- Step 2 Info -->
+        <div class="p-3 mb-2 bg-info text-white">
+          The <b>username</b> and <b>password</b> must belong to an employee in the company, not a "super user" that has
+          access to the company.
+          The user must have access to document storage and the employee(s) to which you are uploading files.
+        </div>
+        <!-- Step 3 -->
+        <li>Upload a <b>CSV Mapping File</b> (see detailed instructions below, use the example CSV file as a guide).
+        </li>
+        <!-- Step 3 Info-->
+        <div class="p-3 mb-2 bg-info text-white">
+          The CSV Mapping File will tell the system where to place the files in K-Pay and will need the following
+          columns:
+          <b>file_name</b>, <b>system_id</b>, <b>document_type_name</b>, <b>description</b>, and <b>employee_photo</b>.
+          <!--Table of CSV Field Mapping-->
+          <table class="table table-sm">
+            <thead>
+              <!-- Column Headers -->
+              <tr>
+                <th scope="col">Column Name</th>
+                <th scope="col">Required?</th>
+                <th scope="col">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Row 1 (file_name) -->
+              <tr>
+                <th scope="row">file_name</th>
+                <td><b>YES</b></td>
+                <td>
+                  Indicate the unique name of the file that this line corresponds to (There should be a line for each file
+                  uploaded).
+                  <br>Note, the file extensions are not required. (Example, can either upload "resume" or "resume.pdf")
+                  <i class = 'tip'><br>
+                    Tip: When copying many files, save time by copying the files from the folder on your
+                    computer into this column on the CSV mapping file.
+                    On a MAC, highlight all files and copy/paste the file names from the file manager into the CSV
+                    mapping file.
+                    On a PC, highlight all files and copy the "file path" of the file names from the file explorer.
+                    Then, paste the list into your CSV mapping
+                    file and manipulate it in Excel (find and replace) so that only the file name is listed. </i>
+                </td>
+              </tr>
+              <!-- Row 2 (system_id) -->
+              <tr>
+                <th scope="row">system_id</th>
+                <td><b>YES</b></td>
+                <td>
+                  Indicate the System ID for which you wish to attach the file. The specific System ID will depend on the type of
+                  document you are uploading.
+                  <br>For Employee Documents, this is the "Account ID" of the employee record. This can be found by
+                  adding the Account ID field to your record list in K-Pay.
+                </td>
+              </tr>
+              <!-- Row 3 (document_type_name) -->
+              <tr>
+                <th scope="row">document_type_name</th>
+                <td>NO</td>
+                <td>
+                  Indicate the K-Pay Document type that matches exactly to the document type name in K-Pay.
+                </td>
+              </tr>
+              <!-- Row 4 (description) -->
+              <tr>
+                <th scope="row">description</th>
+                <td>NO</td>
+                <td>
+                  Include a description with the file for the document description field in K-Pay.
+                </td>
+              </tr>
+              <!-- Row 5 (employee_photo) -->
+              <tr>
+                <th scope="row">employee_photo</th>
+                <td>NO</td>
+                <td>
+                  Indicate if the file should be uploaded to the employee photo area in Account Demographics (Must be in
+                  a .jpeg, .jpg, or .gif file format.) by putting a "Yes" in this column, otherwise leave blank.
+                  <br>
+                  The Document Type and Description columns will be ignored.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          </p>
+          <div style="text-align: center;">
+            <!-- Example CSV File Image -->
+            <figure class="figure">
+              <img class="figure-img img-fluid rounded" src="/images/csv_example.jpg"
+                alt="Example CSV Example Screenshot">
+              <figcaption class="figure-caption text-left text-light">Mapping CSV File Example</figcaption>
+            </figure>
+            <br>
+            <!-- Example CSV File Download -->
+            <a href="/images/mapping.csv" download>
+              <button type="button" class="btn btn-success">Download Sample CSV</button>
+            </a>
           </div>
         </div>
-      </nav>
+        <!-- End of Step 3 Info-->
+        <!-- Step 4 -->
+        <li>Select the <b>File(s) to Upload to K-Pay.</b><br>
+          <!-- Step 4 Info -->
+          <div class="p-3 mb-2 bg-info text-white">
+            Multiple files can be selected from the file upload selected by holding command/control while selecting
+            files. All files selected here need to also be included in the mapping CSV file.
+          </div>
+        </li>
+        <!-- Step 5 -->
+        <li>Click the <b>Submit</b> button.</li>
+        <!-- Step 6 -->
+        <li>If there are errors, you can download the Errors CSV File by clicking <b>Download Errors</b>.</li>
+      </ol>
     </div>
-    <div class="jumbotron">
-      <h1 style="font-size:50px">Upload Files To K-Pay Easily!</h1>
-      <p class="lead">Simply fill out your company shortname, api key, username and password and select the files to
-        upload. The username and password must belong to an employee in the company, not a super user that has access to the company.
-        Additionally, the user must have access to the employee(s) you are uploading files to and must also have access to document storage.
-        Multiple files can be selected from the file upload selected by holding command/control while selecting files.<br>
-        Details:
-        <ol class="lead">
-          <li>Download the sample mapping csv file.</li>
-          <li>Put the name of the file that this line corresponds to in the first column.</li>
-          <li>Put the System ID of the record you wish to attach the file to in the "system_id" column. You can find
-            this by adding the System ID or Account ID fields to your record list in K-Pay.</li>
-          <li>(Optional) Include a "Document Type" in the document information in K-Pay by supplying a Document Type
-            Name in the "document_type_name" column. Note, the name must match exactly to the name in K-Pay.
-          <li>(Optional) Include a description that will be included in the document description in K-Pay.</li>
-          <li>(Optional) If your file is a photo that you wish to put in the employee photo field put a "Yes" in this
-            column. Note that if you put a "Yes" in this column the file will not be stored in the Document Storage
-            area of the employee but will only be visible in the photo area of the Account Demographics section.
-            As such the Document Type and Description columns will be ignored. Also note, I am not validating
-            or manipulating any files here so please make sure your file is a valid image and is formatted correctly
-            before uploading.</li>
-        </ol>
-      </p>
-      <div style="text-align: center;">
-        <img class="logo" width="90%" src="/images/csv_example.jpg" style="text-align: center; padding: 10px 0 30px">
-        <br>
-        <a href="/images/mapping.csv" download>
-          <button type="button" class="btn btn-success">Download Sample CSV</button>
-        </a>
-      </div>
+    <!-- End of Instructions/Jumbotron -->
 
-    </div>
-    <div class="row marketing">
-      <div class="col-lg-12">
-        <form action="/upload" enctype="multipart/form-data" method="post" name="something" id="file-upload-form">
-          <div class="form-group">
-            <label for="company-short-name" class="col-3 col-form-label">Company Shortname</label>
-            <div class="col-10">
-              <input class="form-control" type="text" placeholder="ex: ABCCompany" id="company-short-name"
-                name="company">
-            </div>
+    <!-- ***** FORM ***** -->
+    <div class="marketing">
+      <h3 class="form-header">File Upload Form</h3>
+      <form action="/upload" enctype="multipart/form-data" method="post" name="something" id="file-upload-form">
+        <!-- Form Group Row 1 - Company Shortname -->
+        <div class="form-group row">
+          <label for="company-short-name" class="col-sm-3 col-form-label"
+            title='Company Shortname for the K-Pay Account'>
+            Company Shortname
+          </label>
+          <div class="col-sm-9">
+            <input class="form-control" type="text" placeholder="ex: ABCCompany" id="company-short-name" name="company">
           </div>
-          <div class="form-group">
-            <label for="example-text-input" class="col-3 col-form-label">API Key</label>
-            <div class="col-10">
-              <input class="form-control" type="text" placeholder="ex: 8rnqvyatbwd6biouef47zb5xipmih8zw1" id="api_key"
-                name="api_key">
-            </div>
+        </div>
+        <!-- Form Group Row 2 - API Key -->
+        <div class="form-group row">
+          <label for="example-text-input" class="col-sm-3 col-form-label" title='API Key'>API Key</label>
+          <div class="col-sm-9">
+            <input class="form-control" type="text" placeholder="ex: 8rnqvyatbwd6biouef47zb5xipmih8zw1" id="api_key"
+              name="api_key">
           </div>
-          <div class="form-group">
-            <label for="example-text-input" class="col-3 col-form-label">Username</label>
-            <div class="col-10">
-              <input class="form-control" type="text" placeholder="ex: panderson" id="username" name="username">
-            </div>
+        </div>
+        <!-- Form Group Row 3 - Username -->
+        <div class="form-group row">
+          <label for="example-text-input" class="col-sm-3 col-form-label">Username</label>
+          <div class="col-sm-9">
+            <input class="form-control" type="text" placeholder="ex: panderson" id="username" name="username"
+              title="Username">
           </div>
-          <div class="form-group">
-            <label for="example-password-input" class="col-3 col-form-label">Password</label>
-            <div class="col-10">
-              <input class="form-control" type="password" placeholder="ex: password1" id="password" name="password">
-            </div>
+        </div>
+        <!-- Form Group Row 4 - Password -->
+        <div class="form-group row">
+          <label for="example-password-input" class="col-sm-3 col-form-label">Password</label>
+          <div class="col-sm-9">
+            <input class="form-control" type="password" placeholder="ex: password1" id="password" name="password"
+              title="Password">
           </div>
-          <div class="form-group">
-            <label for="exampleSelect1" class="col-3 col-form-label">Document Type</label>
-            <div class="col-10">
-              <select class="form-control" id="exampleSelect1" name="document_type">
-                <option value="HR_EMPLOYEE_DOCUMENT">Employee Document</option>
-                <option value="COMPANY_DOCUMENT">Company Document</option>
-                <option value="TIMESHEET_DOCUMENT">Timsheet Document</option>
-                <option value="HR_APPLICANT_RESUME">Applicant Resume</option>
-                <option value="BENEFIT_REQUEST_DOCUMENT">Benefit Request Document</option>
-              </select>
-            </div>
+        </div>
+        <!-- Form Group Row 5 - Document Type (Select) -->
+        <div class="form-group row">
+          <label for="exampleSelect1" class="col-sm-3 col-form-label" title="Document Type">Document Type</label>
+          <div class="col-sm-9">
+            <select class="form-control" id="exampleSelect1" name="document_type">
+              <option value="HR_EMPLOYEE_DOCUMENT">Employee Document</option>
+              <option value="COMPANY_DOCUMENT">Company Document</option>
+              <option value="TIMESHEET_DOCUMENT">Timsheet Document</option>
+              <option value="HR_APPLICANT_RESUME">Applicant Resume</option>
+              <option value="BENEFIT_REQUEST_DOCUMENT">Benefit Request Document</option>
+            </select>
           </div>
-          <div class="form-group">
-            <label for="example-password-input" class="col-3 col-form-label">Mapping File Upload</label>
-            <div class="col-10">
-              <input type="file" name="mapping-file-to-upload">
-            </div>
+        </div>
+        <!-- Form Group Row 6 - Mapping File (Upload) -->
+        <div class="form-group row">
+          <label for="example-password-input" class="col-sm-3 col-form-label"
+            title="Upload the Mapping .csv file">Mapping File
+            Upload</label>
+          <div class="col-sm-9">
+            <input type="file" name="mapping-file-to-upload">
           </div>
-          <div class="form-group">
-            <label for="example-password-input" class="col-3 col-form-label">File Upload (max 1,000)</label>
-            <div class="col-10">
-              <input type="file" name="files-to-upload" multiple>
-            </div>
+        </div>
+        <!-- Form Group Row 7 - Files to Upload (Upload) -->
+        <div class="form-group row">
+          <label for="example-password-input" class="col-sm-3 col-form-label"
+            title="Upload the selected files (must be mapped in Mapping .csv file)">File Upload (max 1,000)</label>
+          <div class="col-sm-9">
+            <input type="file" name="files-to-upload" multiple>
           </div>
-          <div class="form-group">
-            <div class="col-10">
-              <div id="file_progress_container" class="progress hidden">
-                <div id="file_progress" class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
-                  role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
-                  Starting...
-                </div>
+        </div>
+        <!-- ***** FILE PROGRESS ***** -->
+        <div class="form-group">
+          <div>
+            <div id="file_progress_container" class="progress hidden">
+              <div id='file_progress' class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
+                role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+                Starting...
               </div>
-              <div id="file_progress_errors" class="">
-              </div>
+            </div>
+            <div id="file_progress_errors" class="form-group">
+            </div>
+            <div id="clear-errors" class="form-group">
+            </div>
+            <div id="download-errors" class="form-group">
             </div>
           </div>
-          <div class="form-group">
-            <div class="col-10">
-              <button type="button" class="btn btn-primary" onclick="submitFiles()">Submit</button>
-            </div>
+        </div>
+        <div class="form-group">
+          <div>
+            <button type="button" id='submit-btn' class="btn btn-primary" onclick="submitFiles()">Submit</button>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
+
+    <!-- ***** FOOTER ***** -->
     <footer class="footer" style="padding-top: 25px;">
-      <p>&copy; 2020 BerganKDV</p>
+      <p>&copy; 2021 BerganKDV</p>
     </footer>
     <script>
+      // Initializing error data variable
+      let errorData = [];
+      // ************ FUNCTION TO SUBMIT FILES ************
       function submitFiles() {
-
-        // Check progress function
+        /// ************ FUNCTION TO CHECK PROGRESS ************
         function checkProgress() {
+          // Get Session Storage Hash
           const url = '/progress?hash=' + sessionStorage.getItem('job_hash');
           console.log('URL', url);
+          // Interval for Progress
           var interval = setInterval(function () {
             fetch(url).then(function (res) {
               return res.json();
             }).then((progress) => {
               if (progress.errors.length > 0) {
                 for (error of progress.errors) {
-                  document.getElementById('file_progress_errors').innerHTML += `<p class="error">${error.file ? error.file + ' : ' : ''}${error.message}</p>`;
+                  // Push Errors to "errorData" Array (To be compiled in CSV file)
+                  if (!error.message.includes(
+                      'was selected to upload but has no match in the mapping file')) {
+                    errorData.push([error.file, error.rec_id, error.document_type, error.description, error
+                      .employee_photo, error.message
+                    ])
+                    console.log(error)
+                    // Display Errors on Page
+                    document.getElementById('file_progress_errors').innerHTML +=
+                      `<p class="error text-danger">${error.file ? error.file + ' : ' : ''}${error.message}</p>`;
+                  }
                 }
+
               }
               current_progress = +progress.percentComplete;
+
+              // When Uploading starts:
               if (current_progress > 0) {
                 console.log('Current Progress', current_progress);
-                document.getElementById('file_progress').className = 'progress-bar progress-bar-striped progress-bar-animated bg-info';
+                document.getElementById('file_progress').className =
+                  'progress-bar progress-bar-striped progress-bar-animated bg-info';
                 document.getElementById('file_progress').style.width = current_progress + '%';
                 document.getElementById('file_progress').setAttribute('aria-valuenow', current_progress);
-                document.getElementById('file_progress').textContent = current_progress + '% (' + progress.filesProcessed + '/' + progress.totalFiles + ')';
+                document.getElementById('file_progress').textContent = current_progress + '% (' + progress
+                  .filesProcessed + '/' + progress.totalFiles + ')';
               }
+
+              // When progress is over 100% Complete:
               if (current_progress >= 100) {
-                document.getElementById('file_progress').className = 'progress-bar bg-success';
-                console.log('Finished');
-                if (progress.fileErrors > 0) {
-                  alert(`Upload has finished but ${progress.fileErrors} file failed to upload. See the error messages and try uploading the failures again.`);
+                // Add a "Download Errors Button" if there are any Errors
+                if (progress.errors.length > 0) {
+
+                  for (error of progress.errors) {
+                    // Push Errors to "errorData" Array (To be compiled in CSV file)
+                    if (error.message.includes(
+                        'was selected to upload but has no match in the mapping file')) {
+                      errorData.push([error.file, error.rec_id, error.document_type, error.description, error
+                        .employee_photo, error.message
+                      ])
+                      console.log(error)
+                      // Display Errors on Page
+                      document.getElementById('file_progress_errors').innerHTML +=
+                        `<p class="error text-danger">${error.file ? error.file + ' : ' : ''}${error.message}</p>`;
+                    }
+                  }
+                  document.getElementById('download-errors').innerHTML =
+                    `<button type="button" class="btn" id="download-csv-btn" onclick="downloadCsv()">Download Errors</button>`;
                 }
+                // Progress Bar turns green
+                document.getElementById('file_progress').className = 'progress-bar bg-success';
+                // Submit Button set to "hidden"
+                document.getElementById('submit-btn').style.visibility = 'hidden';
+                // Add Reset Button
+                document.getElementById('clear-errors').innerHTML =
+                  `<button type="button" class="btn btn-warning" id="clear-errors-btn" onclick="refreshPage()">Reset</button>`
+                // If there are file Errors, display pop-up.
+                if (progress.fileErrors > 0) {
+                  alert(
+                    `Upload has finished but ${progress.fileErrors} file(s) failed to upload. See the error message(s) and try uploading the failures again.`
+                  );
+                }
+                console.log('Finished');
                 clearInterval(interval);
               }
             })
           }, 2000);
-        }
+        } // End of checkProgress Function
 
         // Reveal the progress bar and set styles
         document.getElementById('file_progress_container').className = 'progress';
-        document.getElementById('file_progress').className = 'progress-bar progress-bar-striped progress-bar-animated bg-warning';
+        document.getElementById('file_progress').className =
+          'progress-bar progress-bar-striped progress-bar-animated bg-warning';
         document.getElementById('file_progress').textContent = 'Starting...';
 
         // Upload form data
@@ -210,10 +410,32 @@
             sessionStorage.setItem('job_hash', body.message);
             checkProgress();
           } else {
-            document.getElementById('file_progress_container').style.color = 'red';
-            document.getElementById('file_progress_container').innerHTML = '&nbsp' + body.message;
+            // document.getElementById('file_progress').style.color = 'red';
+            document.getElementById('file_progress').classList = []
+            document.getElementById('file_progress').innerHTML = '&nbsp' + body.message;
           }
         });
+      } // End of submitFiles Function
+
+      // ************ FUNCTION TO RESET(RELOAD) PAGE ************
+      function refreshPage() {
+        location.reload();
+      }
+
+      // ************ FUNCTION TO DOWNLOAD ERROR CSV FILE ************
+      function downloadCsv() {
+        // Create of CSV File using PapaParse
+
+        const csv = Papa.unparse({
+          "fields": ["file_name", "system_id", "document_type_name", "description", "employee_photo", "error"],
+          "data": errorData
+        });
+        // Download CSV File
+        const hiddenElement = document.createElement('a');
+        hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
+        hiddenElement.target = '_blank';
+        hiddenElement.download = 'errors.csv';
+        hiddenElement.click();
       }
     </script>
 </body>
